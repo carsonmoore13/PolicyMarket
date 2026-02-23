@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolicyMarket — Policy Prediction & Discovery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #060606;
+            --bg-panel: rgba(10, 10, 10, 0.88);
+            --bg-card: #0c0c0c;
+            --bg-card-hover: rgba(20, 20, 20, 0.9);
+            
+            --border-subtle: #1e1e1e;
+            --border-focus: #3a3a3a;
+            --border-accent: rgba(99, 102, 241, 0.4);
+            
+            --text-main: #e4e4e7;
+            --text-muted: #71717a;
+            --text-dim: #3f3f46;
+            
+            --accent: #6366f1;
+            --accent-dim: rgba(99, 102, 241, 0.15);
+            
+            --font-sans: "DM Sans", system-ui, sans-serif;
+            --font-serif: "Instrument Serif", "Times New Roman", serif;
+            
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+        }
+
+        .noise-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: overlay;
+        }
+
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(0,0,0,0.5) 100%);
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        #viz-container {
+            flex-grow: 1;
+            height: 100%;
+            position: relative;
+            background: var(--bg-base);
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+        }
+
+        .viz-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border-subtle) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+            background-size: 80px 80px;
+            opacity: 0.12;
+            transform: perspective(1200px) rotateX(8deg) scale(1.05);
+        }
+
+        .viz-chart {
+            position: relative;
+            z-index: 1;
+            width: 90%;
+            max-width: 700px;
+            height: 320px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 12px;
+            padding: 2rem;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            max-width: 80px;
+        }
+
+        .bar {
+            width: 100%;
+            min-height: 20px;
+            background: linear-gradient(180deg, var(--accent) 0%, rgba(99, 102, 241, 0.5) 100%);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            transition: transform var(--transition), opacity var(--transition);
+        }
+
+        .bar-group:hover .bar {
+            opacity: 1;
+            transform: scaleY(1.02);
+        }
+
+        .bar-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .ui-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            grid-template-rows: auto 1fr auto;
+            padding: 1.5rem 2rem;
+            gap: 1.5rem;
+        }
+
+        .ui-layer > * { pointer-events: auto; }
+
+        .side-panel {
+            grid-row: 1 / -1;
+            grid-column: 1;
+            background: var(--bg-panel);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: calc(100vh - 3rem);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        .region-title .label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            margin-bottom: 0.2rem;
+            display: block;
+        }
+
+        .region-title h2 {
+            font-family: var(--font-serif);
+            font-size: 1.35rem;
+            font-weight: 400;
+            color: var(--text-main);
+        }
+
+        .jurisdiction-toggle {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            padding: 4px;
+            border-radius: var(--radius-sm);
+        }
+
+        .toggle-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            letter-spacing: 0.03em;
+            transition: color var(--transition), background var(--transition);
+        }
+
+        .toggle-btn:hover {
+            color: var(--text-main);
+        }
+
+        .toggle-btn.active {
+            color: var(--text-main);
+            background: var(--border-subtle);
+        }
+
+        .search-wrap {
+            position: relative;
+        }
+
+        .search-wrap svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-dim);
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            padding: 0.6rem 0.6rem 0.6rem 2.5rem;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .search-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .filter-chip:hover,
+        .filter-chip.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .policy-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 0;
+        }
+
+        .policy-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .policy-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .policy-list::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 3px;
+        }
+
+        .policy-card {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background var(--transition);
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .policy-card:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .policy-card.active {
+            background: var(--accent-dim);
+            border-left: 3px solid var(--accent);
+            margin-left: -1px;
+            padding-left: calc(1.5rem - 1px);
+        }
+
+        .policy-info .label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            margin-bottom: 0.2rem;
+        }
+
+        .policy-info h3 {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .policy-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .policy-odds {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .policy-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .tag {
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            padding: 0.2rem 0.45rem;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-radius: 4px;
+        }
+
+        .watch-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-muted);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+
+        .watch-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .watch-btn.watching {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .panel-footer {
+            padding: 0.75rem 1.5rem;
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .panel-footer span {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+        }
+
+        .top-nav {
+            grid-column: 2;
+            grid-row: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .brand {
+            font-family: var(--font-serif);
+            font-size: 1.6rem;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+        }
+
+        .brand span {
+            color: var(--accent);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            50% { opacity: 0.6; }
+        }
+
+        .viz-controls {
+            grid-column: 2;
+            grid-row: 2;
+            align-self: end;
+            justify-self: end;
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            padding: 4px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .viz-btn {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: grid;
+            place-items: center;
+            transition: background var(--transition);
+        }
+
+        .viz-btn:hover {
+            background: var(--border-subtle);
+        }
+
+        .detail-tooltip {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            max-width: 320px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition);
+            z-index: 10;
+        }
+
+        #viz-container:hover .detail-tooltip {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+    <div class="vignette"></div>
+
+    <div id="viz-container">
+        <div class="viz-grid"></div>
+        <div class="viz-chart" id="chart">
+            <div class="bar-group" data-label="Jan" data-value="62"><div class="bar" style="height: 62%;"></div><span class="bar-label">Jan</span></div>
+            <div class="bar-group" data-label="Feb" data-value="78"><div class="bar" style="height: 78%;"></div><span class="bar-label">Feb</span></div>
+            <div class="bar-group" data-label="Mar" data-value="55"><div class="bar" style="height: 55%;"></div><span class="bar-label">Mar</span></div>
+            <div class="bar-group" data-label="Apr" data-value="88"><div class="bar" style="height: 88%;"></div><span class="bar-label">Apr</span></div>
+            <div class="bar-group" data-label="May" data-value="71"><div class="bar" style="height: 71%;"></div><span class="bar-label">May</span></div>
+            <div class="bar-group" data-label="Jun" data-value="94"><div class="bar" style="height: 94%;"></div><span class="bar-label">Jun</span></div>
+            <div class="bar-group" data-label="Jul" data-value="82"><div class="bar" style="height: 82%;"></div><span class="bar-label">Jul</span></div>
+        </div>
+        <div class="detail-tooltip" id="chart-tooltip">Select a policy to view market trend</div>
+    </div>
+
+    <div class="ui-layer">
+        <aside class="side-panel">
+            <div class="panel-header">
+                <div class="region-title">
+                    <span class="label">Region</span>
+                    <h2>United States / Federal</h2>
+                </div>
+                <div class="jurisdiction-toggle">
+                    <button class="toggle-btn active" data-level="federal">Federal</button>
+                    <button class="toggle-btn" data-level="state">State</button>
+                    <button class="toggle-btn" data-level="local">Local</button>
+                </div>
+                <div class="search-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" class="search-input" id="search" placeholder="Search policies, topics..." value="">
+                </div>
+                <div class="filter-row">
+                    <button class="filter-chip active" data-filter="all">All</button>
+                    <button class="filter-chip" data-filter="climate">Climate</button>
+                    <button class="filter-chip" data-filter="health">Health</button>
+                    <button class="filter-chip" data-filter="economy">Economy</button>
+                    <button class="filter-chip" data-filter="tech">Tech</button>
+                </div>
+            </div>
+
+            <div class="policy-list" id="policy-list">
+                <div class="policy-card active" data-id="1">
+                    <div class="policy-info">
+                        <span class="label">Prediction market</span>
+                        <h3>Clean Energy Tax Credit Extension</h3>
+                        <div class="policy-meta">
+                            <span class="policy-odds">72%</span>
+                            <span>pass probability</span>
+                        </div>
+                        <div class="policy-tags">
+                            <span class="tag">Climate</span>
+                            <span class="tag">Fiscal</span>
+                        </div>
+                    </div>
+                    <button class="watch-btn watching" title="Watching">★</button>
+                </div>
+                <div class="policy-card" data-id="2">
+                    <div class="policy-info">
+                        <span class="label">Prediction market</span>
+                        <h3>Federal Privacy Framework</h3>
+                        <div class="policy-meta">
+                            <span class="policy-odds">58%</span>
+                            <span>pass probability</span>
+                        </div>
+                        <div class="policy-tags">
+                            <span class="tag">Privacy</span>
+                            <span class="tag">Tech</span>
+                        </div>
+                    </div>
+                    <button class="watch-btn" title="Watch">☆</button>
+                </div>
+                <div class="policy-card" data-id="3">
+                    <div class="policy-info">
+                        <span class="label">Prediction market</span>
+                        <h3>Medicare Drug Negotiation</h3>
+                        <div class="policy-meta">
+                            <span class="policy-odds">81%</span>
+                            <span>pass probability</span>
+                        </div>
+                        <div class="policy-tags">
+                            <span class="tag">Health</span>
+                            <span class="tag">Pharma</span>
+                        </div>
+                    </div>
+                    <button class="watch-btn" title="Watch">☆</button>
+                </div>
+                <div class="policy-card" data-id="4">
+                    <div class="policy-info">
+                        <span class="label">Prediction market</span>
+                        <h3>Infrastructure Appropriations</h3>
+                        <div class="policy-meta">
+                            <span class="policy-odds">65%</span>
+                            <span>pass probability</span>
+                        </div>
+                        <div class="policy-tags">
+                            <span class="tag">Infrastructure</span>
+                            <span class="tag">Economy</span>
+                        </div>
+                    </div>
+                    <button class="watch-btn" title="Watch">☆</button>
+                </div>
+                <div class="policy-card" data-id="5">
+                    <div class="policy-info">
+                        <span class="label">Prediction market</span>
+                        <h3>AI Regulation Framework</h3>
+                        <div class="policy-meta">
+                            <span class="policy-odds">44%</span>
+                            <span>pass probability</span>
+                        </div>
+                        <div class="policy-tags">
+                            <span class="tag">Tech</span>
+                            <span class="tag">AI</span>
+                        </div>
+                    </div>
+                    <button class="watch-btn" title="Watch">☆</button>
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <span>Live odds · Updated continuously</span>
+            </div>
+        </aside>
+
+        <nav class="top-nav">
+            <div class="brand">Policy<span>Market</span></div>
+            <div class="status-bar">
+                <span style="display: flex; align-items: center; gap: 0.4rem;"><span class="status-dot"></span> Live</span>
+                <span>View: Market trend</span>
+            </div>
+        </nav>
+
+        <div class="viz-controls">
+            <button class="viz-btn" title="Zoom in">+</button>
+            <button class="viz-btn" title="Zoom out">−</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var toggleBtns = document.querySelectorAll('.toggle-btn');
+            toggleBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    toggleBtns.forEach(function(b) { b.classList.remove('active'); });
+                    this.classList.add('active');
+                });
+            });
+
+            var filterChips = document.querySelectorAll('.filter-chip');
+            filterChips.forEach(function(chip) {
+                chip.addEventListener('click', function() {
+                    filterChips.forEach(function(c) { c.classList.remove('active'); });
+                    this.classList.add('active');
+                });
+            });
+
+            var policyCards = document.querySelectorAll('.policy-card');
+            var tooltip = document.getElementById('chart-tooltip');
+            policyCards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                    policyCards.forEach(function(c) { c.classList.remove('active'); });
+                    this.classList.add('active');
+                    var title = this.querySelector('h3').textContent;
+                    var odds = this.querySelector('.policy-odds').textContent;
+                    tooltip.textContent = title + ' — ' + odds + ' pass probability';
+                });
+                card.querySelector('.watch-btn').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    this.classList.toggle('watching');
+                    this.textContent = this.classList.contains('watching') ? '★' : '☆';
+                    this.title = this.classList.contains('watching') ? 'Watching' : 'Watch';
+                });
+            });
+
+            document.getElementById('search').addEventListener('input', function() {
+                var q = this.value.toLowerCase();
+                policyCards.forEach(function(card) {
+                    var text = card.textContent.toLowerCase();
+                    card.style.display = text.indexOf(q) >= 0 ? '' : 'none';
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
