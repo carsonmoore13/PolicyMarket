@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PolicyMarket — Policy Prediction & Discovery</title>
+    <!-- Set content to your API URL when deploying (e.g. https://policymarket-api.onrender.com) -->
+    <meta name="policymarket-api-base" content="http://localhost:4000">
+    <title>PolicyMarket — Policy & candidates for your area</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <style>
         :root {
             --bg-base: #060606;
@@ -170,7 +173,7 @@
             flex-shrink: 0;
         }
 
-        .region-title .label {
+        .location-title .label {
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
@@ -179,19 +182,126 @@
             display: block;
         }
 
-        .region-title h2 {
+        .location-title h2 {
             font-family: var(--font-serif);
             font-size: 1.35rem;
             font-weight: 400;
             color: var(--text-main);
         }
 
+        .race-type-label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .your-locality-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.35rem;
+            font-size: 0.7rem;
+            color: #4ade80;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .your-locality-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4ade80;
+            opacity: 0.9;
+        }
+        .your-locality-badge.hidden { display: none; }
+
+        .registration-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1.5rem;
+        }
+        .registration-modal-overlay.hidden { display: none; }
+        .registration-modal {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem 2rem;
+            max-width: 400px;
+            width: 100%;
+        }
+        .registration-modal h3 {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+        .registration-modal p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+        .registration-modal select {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            padding: 0.6rem 0.75rem;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .registration-modal button {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 0.65rem;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .registration-modal button:hover { opacity: 0.95; }
+        .panel-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .change-location-link {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
+            align-self: flex-start;
+        }
+        .change-location-link:hover { color: var(--accent); }
+
         .jurisdiction-toggle {
             display: flex;
-            gap: 0.5rem;
+            gap: 0;
             background: var(--bg-card);
-            padding: 4px;
+            padding: 2px;
             border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .jurisdiction-toggle .toggle-btn {
+            flex: 1;
+            border-radius: 4px;
         }
 
         .toggle-btn {
@@ -262,6 +372,9 @@
         }
 
         .filter-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             color: var(--text-muted);
@@ -271,6 +384,32 @@
             cursor: pointer;
             transition: all var(--transition);
         }
+
+        .filter-chip input[type="checkbox"] {
+            width: 12px;
+            height: 12px;
+            accent-color: var(--accent);
+        }
+
+        .election-filter-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .filter-submit-btn {
+            align-self: flex-start;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 0.45rem 0.85rem;
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity var(--transition);
+        }
+        .filter-submit-btn:hover { opacity: 0.9; }
 
         .filter-chip:hover,
         .filter-chip.active {
@@ -283,6 +422,22 @@
             overflow-y: auto;
             flex-grow: 1;
             padding: 0;
+        }
+        .policy-list .loading, .policy-list .error-state {
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .policy-list .error-state button {
+            margin-top: 0.75rem;
+            padding: 0.4rem 0.8rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.85rem;
         }
 
         .policy-list::-webkit-scrollbar {
@@ -298,29 +453,17 @@
             border-radius: 3px;
         }
 
-        .policy-card {
+        .candidate-card {
             padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--border-subtle);
             transition: background var(--transition);
-            cursor: pointer;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 1rem;
-            align-items: start;
         }
 
-        .policy-card:hover {
+        .candidate-card:hover {
             background: var(--bg-card-hover);
         }
 
-        .policy-card.active {
-            background: var(--accent-dim);
-            border-left: 3px solid var(--accent);
-            margin-left: -1px;
-            padding-left: calc(1.5rem - 1px);
-        }
-
-        .policy-info .label {
+        .candidate-card .label {
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
@@ -328,32 +471,35 @@
             margin-bottom: 0.2rem;
         }
 
-        .policy-info h3 {
+        .candidate-card h3 {
             font-family: var(--font-serif);
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 400;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.35rem;
             color: var(--text-main);
         }
 
-        .policy-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.5rem;
+        .candidate-card .office {
             font-size: 0.75rem;
             color: var(--text-muted);
+            margin-bottom: 0.5rem;
         }
 
-        .policy-odds {
-            font-weight: 600;
-            color: var(--accent);
+        .candidate-card .policy-snippet {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .candidate-card .policy-snippet strong {
+            color: var(--text-main);
         }
 
         .policy-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 0.4rem;
+            margin-top: 0.5rem;
         }
 
         .tag {
@@ -364,32 +510,6 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
             border-radius: 4px;
-        }
-
-        .watch-btn {
-            width: 36px;
-            height: 36px;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            background: transparent;
-            color: var(--text-muted);
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            transition: all var(--transition);
-            flex-shrink: 0;
-        }
-
-        .watch-btn:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: var(--accent-dim);
-        }
-
-        .watch-btn.watching {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: var(--accent-dim);
         }
 
         .panel-footer {
@@ -500,13 +620,104 @@
         #viz-container:hover .detail-tooltip {
             opacity: 1;
         }
+
+        #map {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background: var(--bg-base);
+        }
+        #viz-container .viz-chart { display: none; }
+        #viz-container .viz-grid { display: none; }
+
+        .candidate-marker {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .candidate-marker:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 4px var(--accent-dim);
+        }
+        .candidate-marker.local { width: 24px; height: 24px; font-size: 10px; }
+        .candidate-marker.state { width: 28px; height: 28px; font-size: 11px; }
+        .candidate-marker.national { width: 32px; height: 32px; font-size: 12px; }
+        .candidate-marker-wrap { background: none !important; border: none !important; }
+        .candidate-marker { position: relative; }
+        .candidate-marker .initials { font-weight: 600; color: #fff; text-transform: uppercase; line-height: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .candidate-marker .initials-fallback { position: absolute; inset: 0; background: var(--accent); border-radius: 50%; }
+        .candidate-marker img.avatar { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+        .candidate-marker .party-badge {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1.5px solid var(--bg-base);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .candidate-marker.local .party-badge { width: 8px; height: 8px; font-size: 5px; bottom: -1px; right: -1px; }
+        .candidate-marker.national .party-badge { width: 12px; height: 12px; font-size: 7px; }
+        .party-badge.R { background: #e03c31; }
+        .party-badge.D { background: #2563eb; }
+        .party-badge.I { background: #6b7280; }
+        .party-badge.N { background: #4b5563; }
+
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+        }
+        .leaflet-popup-tip { background: var(--bg-panel); }
+        .leaflet-popup-content { margin: 0.75rem 1rem; min-width: 140px; }
+        .candidate-popup .name { font-weight: 600; color: var(--text-main); }
+        .candidate-popup .office { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+        .candidate-popup .jurisdiction { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-top: 0.25rem; }
+
+        .jurisdiction-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg-card);
+            padding: 2px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+        }
+        .jurisdiction-tabs .toggle-btn { padding: 0.4rem 0.75rem; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <div class="noise-overlay"></div>
     <div class="vignette"></div>
 
+    <div class="registration-modal-overlay" id="registration-modal-overlay">
+        <div class="registration-modal">
+            <h3>Where are you registered to vote?</h3>
+            <p>We'll show a "Your locality" badge when you view your area and highlight your local candidates.</p>
+            <select id="registered-locality-select">
+                <option value="">Choose a city or ZIP…</option>
+            </select>
+            <button type="button" id="registration-modal-submit">Continue</button>
+            <button type="button" class="change-location-link" id="registration-modal-skip" style="margin-top:0.5rem;">Skip for now</button>
+        </div>
+    </div>
+
     <div id="viz-container">
+        <div id="map"></div>
         <div class="viz-grid"></div>
         <div class="viz-chart" id="chart">
             <div class="bar-group" data-label="Jan" data-value="62"><div class="bar" style="height: 62%;"></div><span class="bar-label">Jan</span></div>
@@ -517,114 +728,42 @@
             <div class="bar-group" data-label="Jun" data-value="94"><div class="bar" style="height: 94%;"></div><span class="bar-label">Jun</span></div>
             <div class="bar-group" data-label="Jul" data-value="82"><div class="bar" style="height: 82%;"></div><span class="bar-label">Jul</span></div>
         </div>
-        <div class="detail-tooltip" id="chart-tooltip">Select a policy to view market trend</div>
+        <div class="detail-tooltip" id="chart-tooltip">Zoom in to your area to see local candidates · 78705 Austin, TX</div>
     </div>
 
     <div class="ui-layer">
         <aside class="side-panel">
             <div class="panel-header">
-                <div class="region-title">
-                    <span class="label">Region</span>
-                    <h2>United States / Federal</h2>
+                <div class="location-title">
+                    <span class="label">Your location</span>
+                    <h2 id="location-heading">United States</h2>
+                    <span class="race-type-label" id="race-type-label">Federal races</span>
+                    <span class="your-locality-badge hidden" id="your-locality-badge">Your locality</span>
                 </div>
-                <div class="jurisdiction-toggle">
-                    <button class="toggle-btn active" data-level="federal">Federal</button>
-                    <button class="toggle-btn" data-level="state">State</button>
-                    <button class="toggle-btn" data-level="local">Local</button>
+                <div class="jurisdiction-toggle" id="side-jurisdiction">
+                    <button class="toggle-btn active" data-view="national">Federal</button>
+                    <button class="toggle-btn" data-view="state">State</button>
+                    <button class="toggle-btn" data-view="local">Local</button>
                 </div>
                 <div class="search-wrap">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" class="search-input" id="search" placeholder="Search policies, topics..." value="">
+                    <input type="text" class="search-input" id="search" placeholder="Search candidates or topics..." value="">
                 </div>
-                <div class="filter-row">
-                    <button class="filter-chip active" data-filter="all">All</button>
-                    <button class="filter-chip" data-filter="climate">Climate</button>
-                    <button class="filter-chip" data-filter="health">Health</button>
-                    <button class="filter-chip" data-filter="economy">Economy</button>
-                    <button class="filter-chip" data-filter="tech">Tech</button>
+                <div class="election-filter-wrap">
+                    <div class="filter-row" id="election-filter-row">
+                        <!-- Election type filters injected here -->
+                    </div>
+                    <button type="button" class="filter-submit-btn" id="election-filter-submit">Apply filters</button>
                 </div>
             </div>
 
-            <div class="policy-list" id="policy-list">
-                <div class="policy-card active" data-id="1">
-                    <div class="policy-info">
-                        <span class="label">Prediction market</span>
-                        <h3>Clean Energy Tax Credit Extension</h3>
-                        <div class="policy-meta">
-                            <span class="policy-odds">72%</span>
-                            <span>pass probability</span>
-                        </div>
-                        <div class="policy-tags">
-                            <span class="tag">Climate</span>
-                            <span class="tag">Fiscal</span>
-                        </div>
-                    </div>
-                    <button class="watch-btn watching" title="Watching">★</button>
-                </div>
-                <div class="policy-card" data-id="2">
-                    <div class="policy-info">
-                        <span class="label">Prediction market</span>
-                        <h3>Federal Privacy Framework</h3>
-                        <div class="policy-meta">
-                            <span class="policy-odds">58%</span>
-                            <span>pass probability</span>
-                        </div>
-                        <div class="policy-tags">
-                            <span class="tag">Privacy</span>
-                            <span class="tag">Tech</span>
-                        </div>
-                    </div>
-                    <button class="watch-btn" title="Watch">☆</button>
-                </div>
-                <div class="policy-card" data-id="3">
-                    <div class="policy-info">
-                        <span class="label">Prediction market</span>
-                        <h3>Medicare Drug Negotiation</h3>
-                        <div class="policy-meta">
-                            <span class="policy-odds">81%</span>
-                            <span>pass probability</span>
-                        </div>
-                        <div class="policy-tags">
-                            <span class="tag">Health</span>
-                            <span class="tag">Pharma</span>
-                        </div>
-                    </div>
-                    <button class="watch-btn" title="Watch">☆</button>
-                </div>
-                <div class="policy-card" data-id="4">
-                    <div class="policy-info">
-                        <span class="label">Prediction market</span>
-                        <h3>Infrastructure Appropriations</h3>
-                        <div class="policy-meta">
-                            <span class="policy-odds">65%</span>
-                            <span>pass probability</span>
-                        </div>
-                        <div class="policy-tags">
-                            <span class="tag">Infrastructure</span>
-                            <span class="tag">Economy</span>
-                        </div>
-                    </div>
-                    <button class="watch-btn" title="Watch">☆</button>
-                </div>
-                <div class="policy-card" data-id="5">
-                    <div class="policy-info">
-                        <span class="label">Prediction market</span>
-                        <h3>AI Regulation Framework</h3>
-                        <div class="policy-meta">
-                            <span class="policy-odds">44%</span>
-                            <span>pass probability</span>
-                        </div>
-                        <div class="policy-tags">
-                            <span class="tag">Tech</span>
-                            <span class="tag">AI</span>
-                        </div>
-                    </div>
-                    <button class="watch-btn" title="Watch">☆</button>
-                </div>
+            <div class="policy-list" id="candidate-list">
+                <!-- Filled by JS from candidates for current view -->
             </div>
 
             <div class="panel-footer">
-                <span>Live odds · Updated continuously</span>
+                <span>Policy positions for your area · Zoom or use tabs to change location</span>
+                <button type="button" class="change-location-link" id="change-location-btn">Change where I'm registered to vote</button>
             </div>
         </aside>
 
@@ -632,16 +771,21 @@
             <div class="brand">Policy<span>Market</span></div>
             <div class="status-bar">
                 <span style="display: flex; align-items: center; gap: 0.4rem;"><span class="status-dot"></span> Live</span>
-                <span>View: Market trend</span>
+                <div class="jurisdiction-tabs" id="jurisdiction-tabs">
+                    <button type="button" class="toggle-btn" data-view="national" aria-pressed="true">Federal</button>
+                    <button type="button" class="toggle-btn" data-view="state" aria-pressed="false">State</button>
+                    <button type="button" class="toggle-btn" data-view="local" aria-pressed="false">Local</button>
+                </div>
             </div>
         </nav>
 
         <div class="viz-controls">
-            <button class="viz-btn" title="Zoom in">+</button>
-            <button class="viz-btn" title="Zoom out">−</button>
+            <button class="viz-btn" id="map-zoom-in" title="Zoom in">+</button>
+            <button class="viz-btn" id="map-zoom-out" title="Zoom out">−</button>
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         (function() {
             var toggleBtns = document.querySelectorAll('.toggle-btn');
@@ -652,39 +796,445 @@
                 });
             });
 
-            var filterChips = document.querySelectorAll('.filter-chip');
-            filterChips.forEach(function(chip) {
-                chip.addEventListener('click', function() {
-                    filterChips.forEach(function(c) { c.classList.remove('active'); });
-                    this.classList.add('active');
-                });
-            });
-
-            var policyCards = document.querySelectorAll('.policy-card');
-            var tooltip = document.getElementById('chart-tooltip');
-            policyCards.forEach(function(card) {
-                card.addEventListener('click', function() {
-                    policyCards.forEach(function(c) { c.classList.remove('active'); });
-                    this.classList.add('active');
-                    var title = this.querySelector('h3').textContent;
-                    var odds = this.querySelector('.policy-odds').textContent;
-                    tooltip.textContent = title + ' — ' + odds + ' pass probability';
-                });
-                card.querySelector('.watch-btn').addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    this.classList.toggle('watching');
-                    this.textContent = this.classList.contains('watching') ? '★' : '☆';
-                    this.title = this.classList.contains('watching') ? 'Watching' : 'Watch';
-                });
-            });
-
             document.getElementById('search').addEventListener('input', function() {
-                var q = this.value.toLowerCase();
-                policyCards.forEach(function(card) {
+                var q = this.value.toLowerCase().trim();
+                var cards = document.querySelectorAll('#candidate-list .candidate-card');
+                cards.forEach(function(card) {
                     var text = card.textContent.toLowerCase();
-                    card.style.display = text.indexOf(q) >= 0 ? '' : 'none';
+                    card.style.display = !q || text.indexOf(q) >= 0 ? '' : 'none';
                 });
             });
+        })();
+
+        (function initMap() {
+            var US_CENTER = [39.8283, -98.5795];
+            var US_BOUNDS = [[24.4, -125], [49.4, -66.9]];
+            var AUSTIN_78705 = [30.2836, -97.7424];
+            var TEXAS_CENTER = [31.0, -99.5];
+
+            var map = L.map('map', {
+                center: US_CENTER,
+                zoom: 4,
+                minZoom: 3,
+                maxZoom: 16,
+                maxBounds: US_BOUNDS,
+                maxBoundsViscosity: 0.9
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            function getInitials(name) {
+                var parts = name.trim().split(/\s+/);
+                if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                return name.length >= 2 ? name.slice(0, 2).toUpperCase() : name.toUpperCase();
+            }
+
+            function createCandidateIcon(c, level) {
+                var size = level === 'local' ? 24 : level === 'state' ? 28 : 32;
+                var initials = c.initials || getInitials(c.name);
+                var party = (c.party || 'N').toUpperCase().charAt(0);
+                var partyClass = party === 'R' ? 'R' : party === 'D' ? 'D' : party === 'I' ? 'I' : 'N';
+                var inner;
+                if (c.imageUrl) {
+                    inner = '<img class="avatar" src="' + c.imageUrl + '" alt="" onerror="this.style.display=\'none\';var s=this.nextElementSibling;if(s)s.style.display=\'flex\'"><span class="initials initials-fallback" style="display:none">' + initials + '</span>';
+                } else {
+                    inner = '<span class="initials">' + initials + '</span>';
+                }
+                var html = '<div class="candidate-marker ' + level + '" style="width:' + size + 'px;height:' + size + 'px;">' + inner + '<span class="party-badge ' + partyClass + '">' + party + '</span></div>';
+                return L.divIcon({
+                    className: 'candidate-marker-wrap',
+                    html: html,
+                    iconSize: [size, size],
+                    iconAnchor: [size/2, size/2]
+                });
+            }
+
+            function popupContent(c) {
+                var party = c.party || 'N';
+                var partyLabel = party === 'R' ? 'Republican' : party === 'D' ? 'Democrat' : party === 'I' ? 'Independent' : 'Nonpartisan';
+                return '<div class="candidate-popup"><div class="name">' + escapeHtml(c.name) + '</div><div class="office">' + escapeHtml(c.office) + '</div><div class="jurisdiction">' + escapeHtml(c.jurisdiction) + ' · ' + partyLabel + '</div></div>';
+            }
+
+            var STORAGE_KEY = 'policyMarket_registeredLocality';
+
+            // ——— API config (single source; override via <meta name="policymarket-api-base" content="..."> or set before load)
+            var API_BASE = (function() {
+                var m = document.querySelector('meta[name="policymarket-api-base"]');
+                return (m && m.getAttribute('content')) ? m.getAttribute('content').replace(/\/$/, '') : 'http://localhost:4000';
+            })();
+            var fetchOpts = { cache: 'no-store' };
+            var api = {
+                getLocalities: function() { return fetch(API_BASE + '/api/localities', fetchOpts).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); }); },
+                getCandidatesNational: function() { return fetch(API_BASE + '/api/candidates/national', fetchOpts).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); }); },
+                getCandidatesState: function() { return fetch(API_BASE + '/api/candidates/state', fetchOpts).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); }); },
+                getLocalityCandidates: function(id) { return fetch(API_BASE + '/api/localities/' + encodeURIComponent(id) + '/candidates', fetchOpts).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
+            };
+            var localityCandidatesCache = {};
+            var localities = [];
+            var nationalCandidates = [];
+            var stateCandidates = [];
+
+            var locationHeading = document.getElementById('location-heading');
+            var raceTypeLabel = document.getElementById('race-type-label');
+            var candidateListEl = document.getElementById('candidate-list');
+            var electionFilterRow = document.getElementById('election-filter-row');
+
+            var ELECTION_FILTERS = [
+                { id: 'president', label: 'President' },
+                { id: 'us-house', label: 'U.S. House' },
+                { id: 'governor', label: 'Governor' },
+                { id: 'statewide', label: 'Statewide offices' },
+                { id: 'mayor', label: 'Mayor' },
+                { id: 'city-council', label: 'City council' },
+                { id: 'county-judge', label: 'County judge' },
+                { id: 'controller', label: 'Controller' },
+                { id: 'other', label: 'Other offices' }
+            ];
+
+            var activeElectionFilters = [];
+            var filterApplyScheduled = false;
+
+            function escapeHtml(s) {
+                var div = document.createElement('div');
+                div.textContent = s;
+                return div.innerHTML;
+            }
+
+            function getElectionFilterId(c) {
+                if (!c) return 'other';
+                if (c._electionFilterId) return c._electionFilterId;
+                var office = (c.office || '').toLowerCase();
+                var id = 'other';
+                if (office.indexOf('president') !== -1) id = 'president';
+                else if (office.indexOf('u.s. house') !== -1 || office.indexOf('us house') !== -1 || office.indexOf('house ') !== -1) id = 'us-house';
+                else if (office.indexOf('governor') !== -1) id = 'governor';
+                else if (office.indexOf('attorney general') !== -1) id = 'statewide';
+                else if (office.indexOf('comptroller') !== -1 || office.indexOf('land commissioner') !== -1) id = 'statewide';
+                else if (office.indexOf('mayor') !== -1) id = 'mayor';
+                else if (office.indexOf('city council') !== -1) id = 'city-council';
+                else if (office.indexOf('county judge') !== -1) id = 'county-judge';
+                else if (office.indexOf('controller') !== -1) id = 'controller';
+                c._electionFilterId = id;
+                return id;
+            }
+
+            function applyElectionFilters(list) {
+                if (!list || !list.length) return [];
+                if (!activeElectionFilters.length) return list;
+                return list.filter(function(c) {
+                    return activeElectionFilters.indexOf(getElectionFilterId(c)) !== -1;
+                });
+            }
+
+            function initElectionFilterUI() {
+                if (!electionFilterRow) return;
+                electionFilterRow.innerHTML = '';
+                ELECTION_FILTERS.forEach(function(f) {
+                    var id = 'election-filter-' + f.id;
+                    var label = document.createElement('label');
+                    label.className = 'filter-chip';
+                    var input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = id;
+                    input.setAttribute('data-filter-id', f.id);
+                    var span = document.createElement('span');
+                    span.textContent = f.label;
+                    label.appendChild(input);
+                    label.appendChild(span);
+                    electionFilterRow.appendChild(label);
+                });
+
+                var submitBtn = document.getElementById('election-filter-submit');
+                if (submitBtn) {
+                    submitBtn.addEventListener('click', function() {
+                        activeElectionFilters = [];
+                        electionFilterRow.querySelectorAll('input[type="checkbox"][data-filter-id]:checked').forEach(function(input) {
+                            activeElectionFilters.push(input.getAttribute('data-filter-id'));
+                        });
+                        filterApplyScheduled = true;
+                        setTimeout(function() {
+                            updateLayers(true);
+                            filterApplyScheduled = false;
+                        }, 0);
+                    });
+                }
+            }
+            function showDataLoading() { if (candidateListEl) candidateListEl.innerHTML = '<div class="loading">Loading…</div>'; }
+            function showDataError(message, onRetry) {
+                if (!candidateListEl) return;
+                candidateListEl.innerHTML = '<div class="error-state">' + escapeHtml(message) + ' <button type="button">Retry</button></div>';
+                var btn = candidateListEl.querySelector('button');
+                if (btn && onRetry) btn.addEventListener('click', onRetry);
+            }
+
+            showDataLoading();
+            Promise.all([api.getLocalities(), api.getCandidatesNational(), api.getCandidatesState()]).then(function(results) {
+                localities = Array.isArray(results[0]) ? results[0] : [];
+                nationalCandidates = Array.isArray(results[1]) ? results[1] : [];
+                stateCandidates = Array.isArray(results[2]) ? results[2] : [];
+                initMapLayersAndUI();
+            }).catch(function() {
+                showDataError('Couldn\'t load data.', function() { location.reload(); });
+            });
+
+            function initMapLayersAndUI() {
+            var currentLayer = null;
+
+            var tooltipEl = document.getElementById('chart-tooltip');
+
+            function getLocalityAtCenter(center, zoom) {
+                if (zoom < 10) return null;
+                var best = null;
+                var bestDist = 0.15;
+                localities.forEach(function(loc) {
+                    var dLat = center.lat - loc.center[0];
+                    var dLng = center.lng - loc.center[1];
+                    var dist = Math.sqrt(dLat * dLat + dLng * dLng);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        best = loc;
+                    }
+                });
+                return best ? best.id : null;
+            }
+
+            function getCurrentView() {
+                var zoom = map.getZoom();
+                var center = map.getCenter();
+                var bounds = map.getBounds();
+                var texasLat = center.lat >= 25.8 && center.lat <= 36.5;
+                var texasLng = center.lng >= -106.7 && center.lng <= -93.5;
+                var inTexas = texasLat && texasLng;
+                var localityId = getLocalityAtCenter(center, zoom);
+                if (zoom >= 10 && localityId) return { view: 'local', localityId: localityId };
+                if (zoom >= 5 && inTexas) return { view: 'state', localityId: null };
+                return { view: 'national', localityId: null };
+            }
+
+            function setActiveTab(view) {
+                var tabs = document.querySelectorAll('[data-view]');
+                tabs.forEach(function(btn) {
+                    var isActive = btn.getAttribute('data-view') === view;
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+            }
+
+            function getLocalityById(id) {
+                for (var i = 0; i < localities.length; i++) if (localities[i].id === id) return localities[i];
+                return null;
+            }
+
+            function getCandidatesForView(view, localityId) {
+                if (view === 'national') return nationalCandidates;
+                if (view === 'state') return stateCandidates;
+                var cached = localityId && localityCandidatesCache[localityId];
+                return (cached && cached.candidates) || [];
+            }
+
+            function ensureLocalityCandidatesLoaded(id) {
+                if (localityCandidatesCache[id]) return Promise.resolve(localityCandidatesCache[id].candidates);
+                return api.getLocalityCandidates(id).then(function(data) {
+                    localityCandidatesCache[id] = { name: data.name, candidates: data.candidates || [] };
+                    return localityCandidatesCache[id].candidates;
+                });
+            }
+
+            function getUserLocalityId() {
+                try {
+                    return localStorage.getItem(STORAGE_KEY) || '';
+                } catch (e) { return ''; }
+            }
+
+            function setUserLocalityId(id) {
+                try { localStorage.setItem(STORAGE_KEY, id || ''); } catch (e) {}
+            }
+
+            var yourLocalityBadge = document.getElementById('your-locality-badge');
+
+            function updateSidePanel(view, localityId, applyElectionFilter) {
+                var locationText = view === 'national' ? 'United States' : view === 'state' ? 'Texas' : (getLocalityById(localityId) || localities[0]).name;
+                var raceLabel = view === 'national' ? 'Federal races' : view === 'state' ? 'State races' : 'Local races';
+                var raw = getCandidatesForView(view, localityId);
+                var candidates = applyElectionFilter ? applyElectionFilters(raw) : raw;
+                var isYourLocality = view === 'local' && localityId && localityId === getUserLocalityId();
+                if (locationHeading) locationHeading.textContent = locationText;
+                if (raceTypeLabel) raceTypeLabel.textContent = raceLabel;
+                if (yourLocalityBadge) {
+                    yourLocalityBadge.classList.toggle('hidden', !isYourLocality);
+                }
+                if (!candidateListEl) return;
+                var html = '';
+                candidates.forEach(function(c) {
+                    var policies = c.policies || [];
+                    var snippet = policies.length ? '<p class="policy-snippet">' + escapeHtml(policies[0]) + (policies[1] ? ' · ' + escapeHtml(policies[1]) : '') + '</p>' : '';
+                    html += '<div class="candidate-card" data-candidate="' + escapeHtml(c.name) + '"><div class="label">' + escapeHtml(c.office) + '</div><h3>' + escapeHtml(c.name) + '</h3><div class="office">' + escapeHtml(c.jurisdiction) + '</div>' + snippet + '</div>';
+                });
+                candidateListEl.innerHTML = html;
+            }
+
+            function clearCurrentLayer() {
+                if (currentLayer) {
+                    currentLayer.removeFrom(map);
+                    currentLayer = null;
+                }
+            }
+
+            function showView(view, localityId, applyElectionFilter) {
+                clearCurrentLayer();
+                if (view === 'national') {
+                    var candidatesNat = applyElectionFilter ? applyElectionFilters(nationalCandidates) : nationalCandidates;
+                    currentLayer = L.layerGroup();
+                    candidatesNat.forEach(function(c) {
+                        var mNat = L.marker([c.lat, c.lng], { icon: createCandidateIcon(c, 'national') }).bindPopup(popupContent(c));
+                        currentLayer.addLayer(mNat);
+                    });
+                    currentLayer.addTo(map);
+                    tooltipEl.textContent = 'Federal candidates. Use tabs or zoom to State or Local.';
+                    setActiveTab(view);
+                    updateSidePanel(view, localityId, applyElectionFilter);
+                } else if (view === 'state') {
+                    var candidatesState = applyElectionFilter ? applyElectionFilters(stateCandidates) : stateCandidates;
+                    currentLayer = L.layerGroup();
+                    candidatesState.forEach(function(c) {
+                        var mState = L.marker([c.lat, c.lng], { icon: createCandidateIcon(c, 'state') }).bindPopup(popupContent(c));
+                        currentLayer.addLayer(mState);
+                    });
+                    currentLayer.addTo(map);
+                    tooltipEl.textContent = 'Texas state candidates. Zoom into a city for local races.';
+                    setActiveTab(view);
+                    updateSidePanel(view, localityId, applyElectionFilter);
+                } else {
+                    var loc = getLocalityById(localityId) || (localities[0] || null);
+                    setActiveTab(view);
+                    if (candidateListEl) candidateListEl.innerHTML = '<div class="loading">Loading…</div>';
+                    tooltipEl.textContent = loc ? 'Loading local candidates…' : 'Zoom into a city for local candidates.';
+                    if (!loc) {
+                        if (candidateListEl) candidateListEl.innerHTML = '<div class="loading">Zoom into a city for local candidates.</div>';
+                        return;
+                    }
+                    ensureLocalityCandidatesLoaded(localityId).then(function() {
+                        var cached = localityCandidatesCache[localityId];
+                        var raw = (cached && cached.candidates) || [];
+                        var candidates = applyElectionFilter ? applyElectionFilters(raw) : raw;
+                        clearCurrentLayer();
+                        currentLayer = L.layerGroup();
+                        candidates.forEach(function(c) {
+                            var m = L.marker([c.lat, c.lng], { icon: createCandidateIcon(c, 'local') }).bindPopup(popupContent(c));
+                            currentLayer.addLayer(m);
+                        });
+                        currentLayer.addTo(map);
+                        tooltipEl.textContent = 'Local candidates in ' + (cached ? cached.name : loc.name) + '. Zoom out for state and federal.';
+                        updateSidePanel(view, localityId, applyElectionFilter);
+                    }).catch(function() {
+                        if (candidateListEl) candidateListEl.innerHTML = '<div class="error-state">Couldn\'t load candidates. <button type="button">Retry</button></div>';
+                        var btn = candidateListEl && candidateListEl.querySelector('button');
+                        if (btn) btn.addEventListener('click', function() { showView(view, localityId, false); });
+                    });
+                }
+            }
+
+            function updateLayers(applyElectionFilter) {
+                var current = getCurrentView();
+                showView(current.view, current.localityId, applyElectionFilter === true);
+            }
+
+            function flyToView(view) {
+                if (view === 'national') {
+                    map.flyTo({ center: US_CENTER, zoom: 4 }, { duration: 0.6 });
+                    showView('national', null, false);
+                } else if (view === 'state') {
+                    map.flyTo({ center: TEXAS_CENTER, zoom: 6 }, { duration: 0.6 });
+                    showView('state', null, false);
+                } else {
+                    if (!localities.length) return;
+                    var uid = getUserLocalityId();
+                    var loc = getLocalityById(uid) || localities[0];
+                    if (loc) {
+                        map.flyTo({ center: loc.center, zoom: loc.zoom }, { duration: 0.6 });
+                        showView('local', loc.id, false);
+                    } else {
+                        map.flyTo({ center: localities[0].center, zoom: localities[0].zoom }, { duration: 0.6 });
+                        showView('local', localities[0].id, false);
+                    }
+                }
+            }
+
+            initElectionFilterUI();
+            map.on('zoomend moveend', function() {
+                if (filterApplyScheduled) return;
+                updateLayers(activeElectionFilters.length > 0);
+            });
+            updateLayers();
+
+            var modalOverlay = document.getElementById('registration-modal-overlay');
+            var localitySelect = document.getElementById('registered-locality-select');
+            var modalSubmit = document.getElementById('registration-modal-submit');
+            var changeLocationBtn = document.getElementById('change-location-btn');
+
+            function populateLocalityDropdown() {
+                if (!localitySelect) return;
+                localitySelect.innerHTML = '<option value="">Choose a city or ZIP…</option>';
+                if (!localities.length) {
+                    localitySelect.innerHTML += '<option value="" disabled>Loading locations…</option>';
+                    return;
+                }
+                localities.forEach(function(l) {
+                    localitySelect.innerHTML += '<option value="' + escapeHtml(l.id) + '">' + escapeHtml(l.name) + '</option>';
+                });
+                var current = getUserLocalityId();
+                if (current && current !== 'skipped') localitySelect.value = current;
+            }
+
+            function showRegistrationModal() {
+                if (!modalOverlay || !localitySelect) return;
+                populateLocalityDropdown();
+                modalOverlay.classList.remove('hidden');
+                if (!localities.length) {
+                    api.getLocalities().then(function(list) {
+                        localities = Array.isArray(list) ? list : [];
+                        populateLocalityDropdown();
+                    }).catch(function() {
+                        localitySelect.innerHTML = '<option value="">Choose a city or ZIP…</option><option value="" disabled>Could not load. Check backend and retry.</option>';
+                    });
+                }
+            }
+
+            function hideRegistrationModal() {
+                if (modalOverlay) modalOverlay.classList.add('hidden');
+            }
+
+            function onRegistrationSubmit() {
+                var value = localitySelect.value;
+                if (!value) return;
+                setUserLocalityId(value);
+                hideRegistrationModal();
+                updateLayers();
+            }
+
+            if (modalSubmit) modalSubmit.addEventListener('click', onRegistrationSubmit);
+            if (changeLocationBtn) changeLocationBtn.addEventListener('click', showRegistrationModal);
+            var modalSkip = document.getElementById('registration-modal-skip');
+            if (modalSkip) modalSkip.addEventListener('click', function() { setUserLocalityId('skipped'); hideRegistrationModal(); updateLayers(); });
+
+            if (!getUserLocalityId()) showRegistrationModal();
+
+            function onTabClick(e) {
+                var btn = e.target.closest('[data-view]');
+                if (!btn) return;
+                var view = btn.getAttribute('data-view');
+                flyToView(view);
+            }
+            document.getElementById('jurisdiction-tabs').addEventListener('click', onTabClick);
+            document.getElementById('side-jurisdiction').addEventListener('click', onTabClick);
+
+            document.getElementById('map-zoom-in').addEventListener('click', function() { map.zoomIn(); });
+            document.getElementById('map-zoom-out').addEventListener('click', function() { map.zoomOut(); });
+            }
         })();
     </script>
 </body>

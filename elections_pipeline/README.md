@@ -1,0 +1,1 @@
+The elections pipeline has been moved to **`elections_pipeline_js/`** (Node.js + MongoDB). Use that folder for setup and running. You can delete this empty `elections_pipeline/` folder if you no longer need it.
