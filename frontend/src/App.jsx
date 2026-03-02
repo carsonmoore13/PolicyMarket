@@ -44,12 +44,20 @@ export default function App() {
     setSelectedCandidate(null);
   };
 
+  const handleMapLevelChange = (lvl) => {
+    if (lvl !== level) {
+      setLevel(lvl);
+      setSelectedCandidate(null);
+    }
+  };
+
   const handleCandidateSelect = (c) => {
     setSelectedCandidate(c);
   };
 
   return (
     <>
+      <div className="texture-overlay" />
       <AppLayout
         zipData={zipData}
         zip={zip}
@@ -62,6 +70,7 @@ export default function App() {
         candidatesError={candidatesError}
         onSelectCandidate={handleCandidateSelect}
         selectedCandidate={selectedCandidate}
+        onLevelChangeFromMap={handleMapLevelChange}
       />
       <ZipCodeModal
         open={showZipModal}

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import mapboxgl from "mapbox-gl";
-import { useMapbox } from "../hooks/useMapbox.js";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import CandidateMarker from "./CandidateMarker.jsx";
 
 export default function MapView({
@@ -9,15 +9,70 @@ export default function MapView({
   center,
   onCandidateSelect,
   selectedCandidate,
+  onLevelFromZoom,
 }) {
   const containerRef = useRef(null);
+  const mapRef = useRef(null);
   const markersRef = useRef([]);
-  const { map, mapLoaded } = useMapbox(containerRef, center);
-  const token = import.meta.env.VITE_MAPBOX_TOKEN;
 
+  // Initialize Leaflet map once
   useEffect(() => {
-    if (!map || !mapLoaded) return;
-    // clear existing markers
+    if (!containerRef.current || mapRef.current) return;
+    const map = L.map(containerRef.current, {
+      center: [30.2672, -97.7431],
+      zoom: 4,
+      minZoom: 3,
+      maxZoom: 16,
+    });
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+      },
+    ).addTo(map);
+    mapRef.current = map;
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Map zoom -> level mapping
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !onLevelFromZoom) return;
+
+    const handleZoom = () => {
+      const z = map.getZoom();
+      let nextLevel = "federal";
+      if (z >= 10) nextLevel = "local";
+      else if (z >= 6) nextLevel = "state";
+      onLevelFromZoom(nextLevel);
+    };
+
+    map.on("zoomend", handleZoom);
+    return () => {
+      map.off("zoomend", handleZoom);
+    };
+  }, [onLevelFromZoom]);
+
+  // Fly to ZIP center when it changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !center) return;
+    const [lng, lat] = center;
+    if (typeof lng === "number" && typeof lat === "number") {
+      map.flyTo([lat, lng], 10, { duration: 1.0 });
+    }
+  }, [center]);
+
+  // Update markers when candidates change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
@@ -39,18 +94,17 @@ export default function MapView({
           onClick={() => onCandidateSelect?.(c)}
         />,
       );
-      const marker = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
+
+      const icon = L.divIcon({
+        html: el,
+        className: "pm-marker-wrapper",
+        iconSize: [44, 44],
+      });
+
+      const marker = L.marker([lat, lng], { icon }).addTo(map);
       markersRef.current.push(marker);
     });
-  }, [candidates, map, mapLoaded, onCandidateSelect, selectedCandidate]);
-
-  if (!token || token.includes("your_mapbox_public_token_here")) {
-    return (
-      <div className="flex h-full items-center justify-center bg-slate-900 text-sm text-gray-300">
-        Add <code className="mx-1">VITE_MAPBOX_TOKEN</code> to <code>.env</code> to enable the map.
-      </div>
-    );
-  }
+  }, [candidates, onCandidateSelect, selectedCandidate]);
 
   return (
     <div className="relative h-full w-full">
