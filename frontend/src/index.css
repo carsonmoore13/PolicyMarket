@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+:root {
+  --pm-bg: #0a0e1a;
+  --pm-surface: #111827;
+  --pm-border: #1f2937;
+  --pm-accent: #3b82f6;
+  --pm-text: #f9fafb;
+  --pm-muted: #6b7280;
+  --pm-republican: #ef4444;
+  --pm-democrat: #3b82f6;
+  --pm-independent: #8b5cf6;
+  --pm-green: #10b981;
+  --pm-libertarian: #f59e0b;
+}
+
+body {
+  background: var(--pm-bg);
+  color: var(--pm-text);
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
