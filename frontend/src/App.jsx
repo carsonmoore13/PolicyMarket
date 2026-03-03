@@ -4,6 +4,7 @@ import ZipCodeModal from "./components/ZipCodeModal.jsx";
 import CandidateDetailPanel from "./components/CandidateDetailPanel.jsx";
 import { useZipLookup } from "./hooks/useZipLookup.js";
 import { useCandidates } from "./hooks/useCandidates.js";
+import { useCandidateTotals } from "./hooks/useCandidateTotals.js";
 
 export default function App() {
   const {
@@ -23,6 +24,8 @@ export default function App() {
     loading: candidatesLoading,
     error: candidatesError,
   } = useCandidates(zip, level);
+
+  const { totals: totalCounts } = useCandidateTotals();
 
   const counts = {
     federal:
@@ -65,6 +68,7 @@ export default function App() {
         level={level}
         onLevelChange={handleLevelChange}
         levelCounts={counts}
+        totalCounts={totalCounts}
         candidates={candidates}
         candidatesLoading={candidatesLoading}
         candidatesError={candidatesError}

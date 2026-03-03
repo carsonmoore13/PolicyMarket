@@ -3,7 +3,8 @@ const TEXAS_ZIP_DISTRICT_MAP = {
   78702: { congressional: "TX-21", state_senate: "SD-14", state_house: "HD-051", city_council: "Austin District 3" },
   78703: { congressional: "TX-10", state_senate: "SD-14", state_house: "HD-047", city_council: "Austin District 9" },
   78704: { congressional: "TX-21", state_senate: "SD-14", state_house: "HD-051", city_council: "Austin District 5" },
-  78705: { congressional: "TX-21", state_senate: "SD-14", state_house: "HD-049", city_council: "Austin District 9" },
+  // UT Austin / Central Austin now lies in TX-37 after redistricting.
+  78705: { congressional: "TX-37", state_senate: "SD-14", state_house: "HD-049", city_council: "Austin District 9" },
   78721: { congressional: "TX-21", state_senate: "SD-14", state_house: "HD-051", city_council: "Austin District 1" },
   78722: { congressional: "TX-21", state_senate: "SD-14", state_house: "HD-049", city_council: "Austin District 1" },
   78723: { congressional: "TX-10", state_senate: "SD-14", state_house: "HD-052", city_council: "Austin District 1" },

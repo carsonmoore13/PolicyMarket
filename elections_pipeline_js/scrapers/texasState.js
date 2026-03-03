@@ -3,9 +3,15 @@ import * as cheerio from "cheerio";
 import { getAxiosDefaults } from "../config.js";
 import { createCandidate } from "../models.js";
 import { getJurisdictionCentroid } from "../geo/index.js";
+import { fetchCandidatePhoto } from "./candidate_photos.js";
 
 const SOS_CANDIDATES_URL = "https://www.sos.state.tx.us/elections/candidates/";
 const SOS_ELECTIONS_URL = "https://www.sos.texas.gov/elections/";
+const BALLOTPEDIA_STATE_SOURCES = [
+  ["https://ballotpedia.org/Texas_gubernatorial_election,_2026", "Texas Governor 2026"],
+  ["https://ballotpedia.org/Texas_State_Senate_elections,_2026", "Texas State Senate 2026"],
+  ["https://ballotpedia.org/Texas_House_of_Representatives_elections,_2026", "Texas House 2026"],
+];
 
 async function getWithRetry(url, attempts = 3) {
   const opts = getAxiosDefaults();
@@ -34,6 +40,24 @@ function normalizeDistrict(office, rawDistrict) {
     return n >= 1 && n <= 150 ? `HD-${String(n).padStart(3, "0")}` : null;
   }
   return null;
+}
+
+function looksLikePersonName(text) {
+  if (!text) return false;
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (trimmed.length < 5 || trimmed.length > 80) return false;
+  if (!/[a-z]/i.test(trimmed)) return false;
+  if (
+    /\b(Republican|Democratic|Democrat|Libertarian|Green|Independent|Runoff|Primary|General election|Incumbent)\b/i.test(
+      trimmed,
+    )
+  ) {
+    return false;
+  }
+  const words = trimmed.split(" ");
+  if (words.length < 2 || words.length > 5) return false;
+  const capWords = words.filter((w) => /^[A-Z][a-z'.-]+$/.test(w));
+  return capWords.length >= 2;
 }
 
 export async function fetchTexasStateCandidates() {
@@ -74,7 +98,7 @@ export async function fetchTexasStateCandidates() {
       if (seen.has(key)) continue;
       seen.add(key);
       const geo = await getJurisdictionCentroid("state", "Texas", district);
-      const c = createCandidate({
+      const baseCandidate = {
         name,
         office,
         office_level: "state",
@@ -88,6 +112,17 @@ export async function fetchTexasStateCandidates() {
         source_name: sourceName,
         last_verified: now,
         data_hash: "",
+      };
+      const photo = await fetchCandidatePhoto(baseCandidate);
+      const c = createCandidate({
+        ...baseCandidate,
+        photo: {
+          url: photo.url,
+          source: photo.source,
+          verified: photo.verified,
+          last_fetched: new Date(),
+          fallback_initials: photo.fallback_initials,
+        },
       });
       c.data_hash = c.computeHash();
       candidates.push(c);
@@ -104,7 +139,7 @@ export async function fetchTexasStateCandidates() {
       seen.add(key);
       const district = normalizeDistrict(text, text);
       const geo = await getJurisdictionCentroid("state", "Texas", district);
-      const c = createCandidate({
+      const baseCandidate = {
         name: text.slice(0, 200) || "Unknown",
         office: text.slice(0, 150) || "State Office",
         office_level: "state",
@@ -118,6 +153,96 @@ export async function fetchTexasStateCandidates() {
         source_name: sourceName,
         last_verified: now,
         data_hash: "",
+      };
+      const photo = await fetchCandidatePhoto(baseCandidate);
+      const c = createCandidate({
+        ...baseCandidate,
+        photo: {
+          url: photo.url,
+          source: photo.source,
+          verified: photo.verified,
+          last_fetched: new Date(),
+          fallback_initials: photo.fallback_initials,
+        },
+      });
+      c.data_hash = c.computeHash();
+      candidates.push(c);
+    }
+  }
+
+  // Enrich from Ballotpedia state-level pages (governor, state house, state senate)
+  for (const [url, sourceName] of BALLOTPEDIA_STATE_SOURCES) {
+    let html;
+    try {
+      html = await getWithRetry(url);
+    } catch (err) {
+      console.warn("Texas Ballotpedia state source failed", url, err.message);
+      continue;
+    }
+
+    const $ = cheerio.load(html);
+    const linkEntries = [];
+    $("a[href]").each((_, el) => {
+      const text = $(el).text().trim();
+      if (!looksLikePersonName(text)) return;
+      const context = $(el).closest("tr, li, p").text().trim() || text;
+      linkEntries.push({ name: text, context });
+    });
+
+    for (const entry of linkEntries) {
+      const { name } = entry;
+      const context = entry.context || "";
+      let office = "State Office";
+      if (/governor/i.test(context) || /governor/i.test(sourceName)) {
+        office = "Governor";
+      } else if (/lieutenant governor/i.test(context)) {
+        office = "Lieutenant Governor";
+      } else if (/attorney general/i.test(context)) {
+        office = "Attorney General";
+      } else if (/agriculture commissioner|ag commissioner/i.test(context)) {
+        office = "Agriculture Commissioner";
+      } else if (/railroad commissioner/i.test(context)) {
+        office = "Railroad Commissioner";
+      } else if (/state senate|state senator|senate district/i.test(context) || /State Senate/i.test(sourceName)) {
+        office = "State Senate";
+      } else if (
+        /state house|house of representatives|house district/i.test(context) ||
+        /House 2026/i.test(sourceName)
+      ) {
+        office = "State House";
+      }
+
+      let district = normalizeDistrict(office, context);
+      const key = `${name}|${office}|${district || ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const geo = await getJurisdictionCentroid("state", "Texas", district);
+      const baseCandidate = {
+        name: name.slice(0, 200),
+        office,
+        office_level: "state",
+        jurisdiction: "Texas",
+        district,
+        party: null,
+        incumbent: null,
+        filing_date: null,
+        geo,
+        source_url: url,
+        source_name: sourceName,
+        last_verified: now,
+        data_hash: "",
+      };
+      const photo = await fetchCandidatePhoto(baseCandidate);
+      const c = createCandidate({
+        ...baseCandidate,
+        photo: {
+          url: photo.url,
+          source: photo.source,
+          verified: photo.verified,
+          last_fetched: new Date(),
+          fallback_initials: photo.fallback_initials,
+        },
       });
       c.data_hash = c.computeHash();
       candidates.push(c);
@@ -131,7 +256,7 @@ export async function fetchTexasStateCandidates() {
       ["TX House District 47", "HD-047"],
     ]) {
       const geo = await getJurisdictionCentroid("state", "Texas", district);
-      const c = createCandidate({
+      const baseCandidate = {
         name: "Sample State Candidate",
         office: title,
         office_level: "state",
@@ -145,6 +270,17 @@ export async function fetchTexasStateCandidates() {
         source_name: "TX Secretary of State",
         last_verified: new Date(),
         data_hash: "",
+      };
+      const photo = await fetchCandidatePhoto(baseCandidate);
+      const c = createCandidate({
+        ...baseCandidate,
+        photo: {
+          url: photo.url,
+          source: photo.source,
+          verified: photo.verified,
+          last_fetched: new Date(),
+          fallback_initials: photo.fallback_initials,
+        },
       });
       c.data_hash = c.computeHash();
       candidates.push(c);

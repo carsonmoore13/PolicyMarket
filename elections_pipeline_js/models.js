@@ -25,6 +25,20 @@ export function createCandidate(fields) {
     incumbent: fields.incumbent ?? null,
     filing_date: fields.filing_date ?? null,
     geo: fields.geo ?? null,
+    // New enriched fields
+    photo: fields.photo ?? {
+      url: null,
+      source: null,
+      verified: false,
+      last_fetched: null,
+      fallback_initials: null,
+    },
+    zip_codes: Array.isArray(fields.zip_codes) ? fields.zip_codes : [],
+    district_zip_map: fields.district_zip_map ?? {
+      state: 'TX',
+      district: fields.district ?? null,
+      zip_codes: [],
+    },
     source_url: fields.source_url ?? '',
     source_name: fields.source_name ?? '',
     last_verified: fields.last_verified ?? now,
@@ -48,6 +62,21 @@ export function createCandidate(fields) {
         party: this.party,
         incumbent: this.incumbent,
         filing_date: this.filing_date,
+        photo: this.photo || {
+          url: null,
+          source: null,
+          verified: false,
+          last_fetched: null,
+          fallback_initials: null,
+        },
+        zip_codes: Array.isArray(this.zip_codes) ? this.zip_codes : [],
+        district_zip_map:
+          this.district_zip_map ??
+          {
+            state: 'TX',
+            district: this.district ?? null,
+            zip_codes: [],
+          },
         source_url: this.source_url,
         source_name: this.source_name,
         last_verified: this.last_verified,

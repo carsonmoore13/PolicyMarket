@@ -29,6 +29,7 @@ export default function AppLayout({
   level,
   onLevelChange,
   levelCounts,
+  totalCounts,
   candidates,
   candidatesLoading,
   candidatesError,
@@ -38,10 +39,12 @@ export default function AppLayout({
 }) {
   const [search, setSearch] = useState("");
 
-  const center =
-    zipData && typeof zipData.lng === "number" && typeof zipData.lat === "number"
-      ? [zipData.lng, zipData.lat]
-      : null;
+  const center = useMemo(() => {
+    if (zipData && typeof zipData.lng === "number" && typeof zipData.lat === "number") {
+      return [zipData.lng, zipData.lat];
+    }
+    return null;
+  }, [zipData?.lng, zipData?.lat]);
 
   const filteredCandidates = useMemo(() => {
     const needle = search.toLowerCase().trim();
@@ -64,6 +67,13 @@ export default function AppLayout({
   const federalCount = levelCounts?.federal ?? undefined;
   const stateCount = levelCounts?.state ?? undefined;
   const localCount = levelCounts?.local ?? undefined;
+
+  const totalForCurrentLevel =
+    level === "federal"
+      ? totalCounts?.federal
+      : level === "state"
+        ? totalCounts?.state
+        : totalCounts?.local;
 
   return (
     <div className="app-container">
@@ -116,6 +126,13 @@ export default function AppLayout({
         <div className="list-header">
           {listHeaderLabel} • {levelLabel}
           {zip && zipData ? ` · ${zip}` : ""}
+          {typeof totalForCurrentLevel === "number" && totalForCurrentLevel > 0 && (
+            <span className="ml-1">
+              {" "}
+              · Showing {filteredCandidates.length} of {totalForCurrentLevel}{" "}
+              {levelLabel.toLowerCase()} candidates statewide
+            </span>
+          )}
         </div>
 
         <div className="candidates-list">
@@ -133,9 +150,11 @@ export default function AppLayout({
             </div>
           ) : (
             filteredCandidates.map((c) => {
-              const initials = getInitials(c.name);
+              const initials =
+                c.photo?.fallback_initials || getInitials(c.name);
               const tags = getTags(c);
-              const active = selectedCandidate && selectedCandidate._id === c._id;
+              const active =
+                selectedCandidate && selectedCandidate._id === c._id;
               return (
                 <button
                   key={c._id || `${c.name}-${c.office}-${c.district}`}
@@ -143,11 +162,32 @@ export default function AppLayout({
                   className={`candidate-card ${active ? "bg-active" : ""}`}
                   onClick={() => onSelectCandidate(c)}
                 >
-                  <div className="avatar-placeholder">{initials || "IMG"}</div>
+                  <div className="avatar-placeholder overflow-hidden rounded-full">
+                    {c.photo?.url ? (
+                      <img
+                        src={c.photo.url}
+                        alt={c.name || "Candidate"}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : null}
+                    {!c.photo?.url && (
+                      <span>{initials || "IMG"}</span>
+                    )}
+                    {c.photo?.verified && (
+                      <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 text-[8px] font-bold text-black flex items-center justify-center">
+                        ✓
+                      </div>
+                    )}
+                  </div>
                   <div className="card-content">
                     <div className="candidate-name">
                       {c.name || "Unknown candidate"}
-                      <span className="party-badge">{(c.party || "").toUpperCase()}</span>
+                      <span className="party-badge">
+                        {(c.party || "").toUpperCase()}
+                      </span>
                     </div>
                     <div className="candidate-role">
                       {c.office || "Office"}
@@ -184,6 +224,7 @@ export default function AppLayout({
         <MapView
           candidates={candidates}
           center={center}
+          level={level}
           onCandidateSelect={onSelectCandidate}
           selectedCandidate={selectedCandidate}
           onLevelFromZoom={onLevelChangeFromMap}

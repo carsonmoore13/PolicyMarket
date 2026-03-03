@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { getAxiosDefaults } from "../config.js";
 import { createCandidate } from "../models.js";
 import { getJurisdictionCentroid } from "../geo/index.js";
+import { fetchCandidatePhoto } from "./candidate_photos.js";
 
 const AUSTIN_COUNCIL_URL = "https://www.austintexas.gov/department/city-council";
 const TRAVIS_CLERK_URL = "https://countyclerk.traviscountytx.gov/elections";
@@ -99,7 +100,7 @@ export async function fetchAustinCandidates() {
         if (seen.has(key)) continue;
         seen.add(key);
         const geo = await getJurisdictionCentroid("city", "Austin, TX", district);
-        const c = createCandidate({
+        const baseCandidate = {
           name,
           office: "Austin City Council",
           office_level: "city",
@@ -113,6 +114,17 @@ export async function fetchAustinCandidates() {
           source_name: sourceName,
           last_verified: now,
           data_hash: "",
+        };
+        const photo = await fetchCandidatePhoto(baseCandidate);
+        const c = createCandidate({
+          ...baseCandidate,
+          photo: {
+            url: photo.url,
+            source: photo.source,
+            verified: photo.verified,
+            last_fetched: new Date(),
+            fallback_initials: photo.fallback_initials,
+          },
         });
         c.data_hash = c.computeHash();
         candidates.push(c);
@@ -132,7 +144,7 @@ export async function fetchAustinCandidates() {
         if (seen.has(key)) continue;
         seen.add(key);
         const geo = await getJurisdictionCentroid("city", "Austin, TX", district);
-        const c = createCandidate({
+        const baseCandidate = {
           name,
           office,
           office_level: "city",
@@ -146,6 +158,17 @@ export async function fetchAustinCandidates() {
           source_name: sourceName,
           last_verified: now,
           data_hash: "",
+        };
+        const photo = await fetchCandidatePhoto(baseCandidate);
+        const c = createCandidate({
+          ...baseCandidate,
+          photo: {
+            url: photo.url,
+            source: photo.source,
+            verified: photo.verified,
+            last_fetched: new Date(),
+            fallback_initials: photo.fallback_initials,
+          },
         });
         c.data_hash = c.computeHash();
         candidates.push(c);
@@ -162,7 +185,7 @@ export async function fetchAustinCandidates() {
         if (seen.has(key)) continue;
         seen.add(key);
         const geo = await getJurisdictionCentroid("city", "Austin, TX", "Austin District 1");
-        const c = createCandidate({
+        const baseCandidate = {
           name: text.slice(0, 200) || "Unknown",
           office: "Austin City Council",
           office_level: "city",
@@ -176,6 +199,17 @@ export async function fetchAustinCandidates() {
           source_name: sourceName,
           last_verified: now,
           data_hash: "",
+        };
+        const photo = await fetchCandidatePhoto(baseCandidate);
+        const c = createCandidate({
+          ...baseCandidate,
+          photo: {
+            url: photo.url,
+            source: photo.source,
+            verified: photo.verified,
+            last_fetched: new Date(),
+            fallback_initials: photo.fallback_initials,
+          },
         });
         c.data_hash = c.computeHash();
         candidates.push(c);
@@ -185,7 +219,7 @@ export async function fetchAustinCandidates() {
 
   if (candidates.length === 0) {
     const geo = await getJurisdictionCentroid("city", "Austin, TX", "Austin District 1");
-    const c = createCandidate({
+    const baseCandidate = {
       name: "Kirk Watson",
       office: "Mayor of Austin",
       office_level: "city",
@@ -199,6 +233,17 @@ export async function fetchAustinCandidates() {
       source_name: "City of Austin Council",
       last_verified: new Date(),
       data_hash: "",
+    };
+    const photo = await fetchCandidatePhoto(baseCandidate);
+    const c = createCandidate({
+      ...baseCandidate,
+      photo: {
+        url: photo.url,
+        source: photo.source,
+        verified: photo.verified,
+        last_fetched: new Date(),
+        fallback_initials: photo.fallback_initials,
+      },
     });
     c.data_hash = c.computeHash();
     candidates.push(c);

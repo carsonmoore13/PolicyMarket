@@ -105,6 +105,8 @@ body {
   flex-direction: column;
   z-index: 10;
   position: relative;
+  /* Allow inner scroll areas (candidate list) to work inside flex column */
+  min-height: 0;
 }
 
 .sidebar::after {
@@ -222,6 +224,25 @@ body {
 .candidates-list {
   flex: 1;
   overflow-y: auto;
+}
+
+/* Muted custom scrollbar for candidate list */
+.candidates-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-crease) transparent;
+}
+
+.candidates-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.candidates-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.candidates-list::-webkit-scrollbar-thumb {
+  background-color: var(--border-crease);
+  border-radius: 999px;
 }
 
 .list-header {

@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { getAxiosDefaults } from "../config.js";
 import { createCandidate } from "../models.js";
 import { getJurisdictionCentroid } from "../geo/index.js";
+import { fetchCandidatePhoto } from "./candidate_photos.js";
 
 const FEC_API_BASE = "https://api.open.fec.gov/v1/candidates/";
 const FEC_API_KEY = "DEMO_KEY";
@@ -66,7 +67,7 @@ export async function fetchFederalTexasCandidates() {
           seen.add(key);
           const geo = await getJurisdictionCentroid("federal", "Texas", district);
           const officeStr = officeLabel + (district ? ` TX-${district.split("-")[1]}` : "");
-          const c = createCandidate({
+          const baseCandidate = {
             name,
             office: officeStr,
             office_level: "federal",
@@ -81,6 +82,17 @@ export async function fetchFederalTexasCandidates() {
             last_verified: now,
             data_hash: "",
             source_candidate_id: cid != null ? String(cid) : null,
+          };
+          const photo = await fetchCandidatePhoto(baseCandidate);
+          const c = createCandidate({
+            ...baseCandidate,
+            photo: {
+              url: photo.url,
+              source: photo.source,
+              verified: photo.verified,
+              last_fetched: new Date(),
+              fallback_initials: photo.fallback_initials,
+            },
           });
           c.data_hash = c.computeHash();
           candidates.push(c);
@@ -109,7 +121,7 @@ export async function fetchFederalTexasCandidates() {
       if (seen.has(key)) continue;
       seen.add(key);
       const geo = await getJurisdictionCentroid("federal", "Texas", district);
-      const c = createCandidate({
+      const baseCandidate = {
         name: text.slice(0, 200),
         office: "U.S. House",
         office_level: "federal",
@@ -123,6 +135,17 @@ export async function fetchFederalTexasCandidates() {
         source_name: "Ballotpedia",
         last_verified: now,
         data_hash: "",
+      };
+      const photo = await fetchCandidatePhoto(baseCandidate);
+      const c = createCandidate({
+        ...baseCandidate,
+        photo: {
+          url: photo.url,
+          source: photo.source,
+          verified: photo.verified,
+          last_fetched: new Date(),
+          fallback_initials: photo.fallback_initials,
+        },
       });
       c.data_hash = c.computeHash();
       candidates.push(c);
@@ -134,7 +157,7 @@ export async function fetchFederalTexasCandidates() {
   if (candidates.length === 0) {
     for (const dist of ["TX-21", "TX-25"]) {
       const geo = await getJurisdictionCentroid("federal", "Texas", dist);
-      const c = createCandidate({
+      const baseCandidate = {
         name: "Sample Federal Candidate",
         office: "U.S. House",
         office_level: "federal",
@@ -148,6 +171,17 @@ export async function fetchFederalTexasCandidates() {
         source_name: "FEC",
         last_verified: new Date(),
         data_hash: "",
+      };
+      const photo = await fetchCandidatePhoto(baseCandidate);
+      const c = createCandidate({
+        ...baseCandidate,
+        photo: {
+          url: photo.url,
+          source: photo.source,
+          verified: photo.verified,
+          last_fetched: new Date(),
+          fallback_initials: photo.fallback_initials,
+        },
       });
       c.data_hash = c.computeHash();
       candidates.push(c);
