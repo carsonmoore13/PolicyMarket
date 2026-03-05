@@ -222,11 +222,13 @@ function buildRaceUrls(state, raceType, districtNum) {
 const SLUG_NON_PERSON = /^(Template:|Category:|File:|Wikipedia:|Help:|Special:|Talk:|User:|Portal:|Draft:|United_States_|List_of_|General_|Poll_|Ballot_|Voting_|Primary_|Runoff_|Independent_|Write-in|Democratic_Party|Republican_Party|Election_|elections?$)/i;
 
 // Words that appear in non-person link text
-const NAME_EXCLUDE = /party|election|poll|district|senate|house|congress|general|primary|runoff|ballot|voting|campaign|endorsement|race|seat|term|office|county|city|state\b|representative|governor|mayor|council|incumbent|candidate|nomination/i;
+const NAME_EXCLUDE = /party|election|poll|district|senate|house|congress|general|primary|runoff|ballot|voting|campaign|endorsement|race|seat|term|office|county|city|state\b|representative|governor|mayor|council|incumbent|candidate|nomination|report|monitor|committee|coalition|association|political|foundation|institute|center|bureau|department|division|agency|authority|commission|board|court|journal|news|tribune|times|post|gazette|herald|review|observer|biography|submitted|survey|source\b|spending|satellite|delegation|information|\bclick\b|\bhere\b|\bview\b|\bmore\b|\bsee\b/i;
 
 function isPersonName(name) {
   if (!name || name.length < 4 || name.length > 60) return false;
   if (NAME_EXCLUDE.test(name)) return false;
+  // Reject "Org and Other Org" style names (no real person has "and" mid-name)
+  if (/\band\b/i.test(name)) return false;
   // Must have at least 2 words
   const words = name.trim().split(/\s+/);
   if (words.length < 2) return false;
@@ -274,6 +276,8 @@ function parseElectionPageHtml(html) {
   function scanTables($scope) {
     $scope.find("table").each((_, table) => {
       const $tbl = $(table);
+      // Skip large navigation tables (>30 rows) — those list races/districts, not candidates
+      if ($tbl.find("tr").length > 30) return;
       let currentParty = null;
 
       $tbl.find("tr").each((_, row) => {
@@ -300,6 +304,8 @@ function parseElectionPageHtml(html) {
           const href = $(link).attr("href") || "";
           const name = $(link).text().trim();
           if (!isPersonLink(href, name)) return;
+          // Skip names containing digits (e.g. "Texas' 2nd", "District 37")
+          if (/\d/.test(name)) return;
           const slug = href.slice(1);
           if (seen.has(slug)) return;
           seen.add(slug);
@@ -347,23 +353,101 @@ function parseElectionPageHtml(html) {
   return nominees;
 }
 
-// ─── Photo scraper (mirrors the pipeline version) ────────────────────────────
+// ─── Candidate page scraper: photo + bio ─────────────────────────────────────
 
-async function fetchPhoto(slug) {
+/**
+ * Fetch a Ballotpedia candidate page and extract photo URL and bio text.
+ *
+ * @param {string} slug - Ballotpedia URL slug
+ * @param {{ skipPhoto?: boolean }} opts
+ * @returns {{ photo_url, bio, ballotpedia_url }}
+ */
+export async function fetchCandidateInfo(slug, { skipPhoto = false } = {}) {
   const url = `${BP_BASE}/${slug.replace(/ /g, "_")}`;
   const html = await fetchPage(url);
-  if (!html) return { photo_url: null, ballotpedia_url: url };
+  if (!html) return { photo_url: null, bio: null, ballotpedia_url: url };
 
   const $ = cheerio.load(html);
+
+  // Photo
   let photo_url = null;
-  const img = $(".infobox img, #mw-content-text .infobox img").first();
-  let src = img.attr("src") || "";
-  if (src) {
-    if (src.startsWith("//")) src = `https:${src}`;
-    else if (!src.startsWith("http")) src = `${BP_BASE}${src}`;
-    photo_url = src;
+  if (!skipPhoto) {
+    const img = $(".infobox img, #mw-content-text .infobox img").first();
+    let src = img.attr("src") || "";
+    if (src) {
+      if (src.startsWith("//")) src = `https:${src}`;
+      else if (!src.startsWith("http")) src = `${BP_BASE}${src}`;
+      photo_url = src;
+    }
   }
-  return { photo_url, ballotpedia_url: url };
+
+  // Bio text — first substantive paragraph in the article body
+  let bio = null;
+  const paragraphs = [];
+  $("#mw-content-text p").each((_, el) => {
+    const text = $(el)
+      .text()
+      .replace(/\[\d+\]/g, "") // strip citation markers
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text.length > 60) paragraphs.push(text);
+  });
+  // Skip boilerplate single-sentence paragraphs; take first meaty one
+  for (const p of paragraphs.slice(0, 6)) {
+    if (p.length > 100) {
+      bio = p;
+      break;
+    }
+  }
+  if (!bio && paragraphs.length) bio = paragraphs[0];
+
+  // Party — look in infobox or first 3 paragraphs
+  let party = null;
+  const infoboxText = $(".infobox").text();
+  const pageText = (infoboxText + " " + paragraphs.slice(0, 3).join(" ")).toLowerCase();
+  if (/\brepublican\b/.test(pageText)) party = "R";
+  else if (/\bdemocrat(ic)?\b/.test(pageText)) party = "D";
+
+  // District number — look in page title and first 4 paragraphs
+  let districtNum = null;
+  const titleText = $("title").text();
+  const searchText = titleText + " " + paragraphs.slice(0, 4).join(" ");
+  const districtMatch =
+    searchText.match(/District[_\s]+(\d+)/i) ||
+    searchText.match(/(\d+)(?:st|nd|rd|th)\s+district/i) ||
+    searchText.match(/district\s+no\.\s*(\d+)/i);
+  if (districtMatch) districtNum = parseInt(districtMatch[1], 10);
+
+  return { photo_url, bio, ballotpedia_url: url, party, districtNum };
+}
+
+/**
+ * Convert a Ballotpedia bio paragraph into sidebar policy bullet points.
+ * Falls back to party-generic bullets when the bio yields nothing useful.
+ */
+export function bioToBullets(bio, party, fallback) {
+  const bullets = [];
+
+  if (bio && bio.length > 50) {
+    const cleaned = bio.replace(/\[\d+\]/g, "").replace(/\s+/g, " ").trim();
+    // Split at sentence boundaries (period-space-Capital)
+    const sentences = cleaned
+      .split(/(?<=[.!?])\s+(?=[A-Z])/)
+      .map((s) => s.replace(/\.$/, "").trim())
+      .filter((s) => s.length > 25 && s.length < 220);
+    bullets.push(...sentences.slice(0, 5));
+  }
+
+  if (bullets.length === 0) {
+    return fallback || GENERIC_POLICIES[party] || [];
+  }
+  return bullets;
+}
+
+// Keep old name for backward compat inside this module
+async function fetchPhoto(slug) {
+  const { photo_url, ballotpedia_url } = await fetchCandidateInfo(slug, { skipPhoto: false });
+  return { photo_url, ballotpedia_url };
 }
 
 // ─── Default geo per state (state capital centroid) ──────────────────────────
@@ -467,33 +551,43 @@ const GENERIC_POLICIES = {
   ],
 };
 
+// ─── Exported helpers (used by stateFullSeeder) ──────────────────────────────
+export { fetchPage, parseElectionPageHtml, isPersonLink, isPersonName,
+         STATE_NAMES, STATE_FULL, STATE_CAPITALS, GENERIC_POLICIES,
+         LOWER_CHAMBER, UPPER_CHAMBER,
+         makeGeo, initials, hashCandidate,
+         toOrdinal, statePossessive };
+
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 /**
  * Discover 2026 nominees for a single race by scraping Ballotpedia.
  *
  * @param {object} params
- * @param {string} params.state       - 2-letter state abbreviation
- * @param {string} params.raceType    - "us_senate" | "us_house" | "state_senate" | "state_house"
+ * @param {string} params.state         - 2-letter state abbreviation
+ * @param {string} params.raceType      - "us_senate" | "us_house" | "state_senate" | "state_house"
  * @param {number|null} params.districtNum - district number (null for US Senate)
+ * @param {boolean} [params.skipPhotos] - skip photo fetching (faster for bulk seeding)
+ * @param {object[]} [params.nominees]  - pre-parsed nominees (skip election page fetch)
  *
  * @returns {Promise<object[]>} Array of candidate objects ready for MongoDB upsert.
  */
-export async function discoverRaceCandidates({ state, raceType, districtNum }) {
-  const urls = buildRaceUrls(state, raceType, districtNum);
-  if (!urls.length) {
-    console.warn(`[RaceScraper] No URL pattern for ${raceType} ${state} ${districtNum}`);
-    return [];
-  }
-
-  // Try each URL variant until one works
-  let nominees = [];
-  for (const url of urls) {
-    console.log(`[RaceScraper] Trying: ${url}`);
-    const html = await fetchPage(url);
-    if (html) {
-      nominees = parseElectionPageHtml(html);
-      if (nominees.length) break;
+export async function discoverRaceCandidates({ state, raceType, districtNum, skipPhotos = false, nominees: preNominees = null }) {
+  // Use pre-parsed nominees (from overview page) or scrape the individual race page
+  let nominees = preNominees || [];
+  if (!nominees.length) {
+    const urls = buildRaceUrls(state, raceType, districtNum);
+    if (!urls.length) {
+      console.warn(`[RaceScraper] No URL pattern for ${raceType} ${state} ${districtNum}`);
+      return [];
+    }
+    for (const url of urls) {
+      console.log(`[RaceScraper] Trying: ${url}`);
+      const html = await fetchPage(url);
+      if (html) {
+        nominees = parseElectionPageHtml(html);
+        if (nominees.length) break;
+      }
     }
   }
 
@@ -534,10 +628,13 @@ export async function discoverRaceCandidates({ state, raceType, districtNum }) {
   const candidates = [];
 
   for (const nominee of nominees) {
-    console.log(`  [RaceScraper] Fetching photo for ${nominee.name} (${nominee.party})…`);
-    const { photo_url, ballotpedia_url } = await fetchPhoto(nominee.slug);
+    const action = skipPhotos ? "bio" : "photo+bio";
+    console.log(`  [RaceScraper] Fetching ${action} for ${nominee.name} (${nominee.party})…`);
+    const { photo_url, bio, ballotpedia_url } = await fetchCandidateInfo(nominee.slug, { skipPhoto: skipPhotos });
 
     const officeLabel = raceMeta.office + (raceMeta.district ? ` ${raceMeta.district}` : "");
+    const policies = bioToBullets(bio, nominee.party);
+
     const candidate = {
       name: nominee.name,
       office: officeLabel,
@@ -550,11 +647,11 @@ export async function discoverRaceCandidates({ state, raceType, districtNum }) {
       filing_date: null,
       geo: makeGeo(state),
       home_city: STATE_CAPITALS[state]?.city || `${state}`,
-      policies: GENERIC_POLICIES[nominee.party] || [],
+      policies,
       photo: {
-        url: photo_url || null,
-        source: photo_url ? "ballotpedia" : null,
-        verified: Boolean(photo_url),
+        url: skipPhotos ? null : (photo_url || null),
+        source: (!skipPhotos && photo_url) ? "ballotpedia" : null,
+        verified: !skipPhotos && Boolean(photo_url),
         last_fetched: now,
         fallback_initials: initials(nominee.name),
       },

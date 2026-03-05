@@ -13,5 +13,23 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Dependencies (if you add Node later)
+# Dependencies
 node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+!frontend/.env.production
+
+# Build output
+dist/
+build/
+
+# Python virtualenv
+.venv/
+__pycache__/
+*.pyc
+
+# Candidate photos (large binary assets)
+frontend/public/candidate_photos/

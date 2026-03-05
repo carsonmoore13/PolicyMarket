@@ -1,55 +1,48 @@
 import express from "express";
-import { resolveZipToDistricts } from "../geo/zip_to_district.js";
+import { resolveAddress } from "../services/addressResolver.js";
 
 const router = express.Router();
 
-// GET /api/debug/districts?zip=78705
-// Returns the resolved congressional, state senate, and state house districts
-// for a given ZIP code, along with basic location info. This is intended for
-// manual verification against external tools (TX SoS, Texas Tribune, etc.).
+// GET /api/debug/districts?street=123+Main+St&city=Austin&state=TX&zip=78705
+// Returns the resolved districts for a given address.
+// Intended for manual verification against TX SoS, Texas Tribune, etc.
 router.get("/districts", async (req, res) => {
   try {
-    const { zip } = req.query;
-    if (!zip || !/^\d{5}$/.test(String(zip))) {
-      return res
-        .status(400)
-        .json({ error: "Please provide a valid 5-digit zip parameter." });
+    const { street, city, state, zip } = req.query;
+
+    if (!street || !city || !state) {
+      return res.status(400).json({
+        error: "Please provide street, city, and state query parameters.",
+      });
     }
 
-    const info = await resolveZipToDistricts(String(zip));
+    const info = await resolveAddress({ street, city, state, zip });
 
     if (
-      !info.congressional_district &&
-      !info.state_senate_district &&
-      !info.state_house_district
+      !info.districts.congressional &&
+      !info.districts.state_senate &&
+      !info.districts.state_house
     ) {
       return res.status(404).json({
-        error: "Unable to resolve districts for this ZIP code.",
-        zip: String(zip),
+        error: "Unable to resolve districts for this address.",
+        address: { street, city, state },
       });
     }
 
     return res.json({
-      zip: String(zip),
+      address: { street, city: info.city, state: info.state, zip: zip || null },
       location: {
-        city: info.city || null,
+        city: info.city,
         county: info.county || null,
         lat: info.lat ?? null,
         lng: info.lng ?? null,
       },
-      districts: {
-        congressional: info.congressional_district || null,
-        state_senate: info.state_senate_district || null,
-        state_house: info.state_house_district || null,
-      },
+      districts: info.districts,
     });
   } catch (err) {
     console.error("Debug district lookup failed", err.message);
-    return res
-      .status(500)
-      .json({ error: "Failed to resolve districts for this ZIP code." });
+    return res.status(500).json({ error: err.message });
   }
 });
 
 export default router;
-

@@ -15,13 +15,18 @@ async function ensureIndexes() {
   await candidates.createIndex({ "photo.verified": 1 });
   await candidates.createIndex({ "district_zip_map.zip_codes": 1 });
 
-  await zipCache.createIndex({ zip_code: 1 }, { unique: true });
+  // address_key is the primary lookup key (replaces the old zip_code index)
+  await zipCache.createIndex({ address_key: 1 }, { unique: true, sparse: true });
   await zipCache.createIndex(
     { cached_at: 1 },
     { expireAfterSeconds: 30 * 24 * 60 * 60 },
   );
+  // Drop legacy zip_code unique index if it still exists (ignore errors)
+  zipCache.dropIndex("zip_code_1").catch(() => {});
 
-  await apiCache.createIndex({ zip: 1 }, { unique: true });
+  // api_cache uses address_key too — drop legacy zip index if present
+  await apiCache.createIndex({ address_key: 1 }, { unique: true, sparse: true });
+  apiCache.dropIndex("zip_1").catch(() => {});
   await apiCache.createIndex(
     { cached_at: 1 },
     { expireAfterSeconds: 24 * 60 * 60 },

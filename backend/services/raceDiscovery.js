@@ -3,16 +3,22 @@
  *
  * Checks which 2026 races (US Senate, US House, state legislative) are missing
  * from the candidates collection for a given set of voter districts, then
- * triggers Ballotpedia scraping for each missing race.
+ * triggers Ballotpedia scraping.
  *
- * Called async (fire-and-forget) from the candidates route so the first
- * request to a new district returns quickly and the data populates in the
- * background. The api_cache for that address is intentionally NOT set until
- * candidates are present, so a subsequent request will receive the full set.
+ * Strategy:
+ *   - If we have ZERO candidates for the voter's state → trigger the full
+ *     state seeder (scrapes overview pages for every race in the state).
+ *   - If we have some state data but the specific district is missing → fall
+ *     back to per-district scraping via discoverRaceCandidates.
+ *
+ * Runs async (fire-and-forget) so the HTTP response returns immediately.
+ * The api_cache is intentionally NOT set until candidates exist, so the
+ * next request from the same address picks up the freshly-seeded data.
  */
 
 import { getCandidatesCollection } from "../db.js";
 import { discoverRaceCandidates } from "./ballotpediaRaceScraper.js";
+import { seedStateRaces, isSeedingInProgress } from "./stateFullSeeder.js";
 
 // In-memory set of races currently being discovered so parallel requests
 // don't trigger duplicate scraping work.
@@ -80,8 +86,24 @@ async function saveCandidates(candidates) {
 }
 
 /**
+ * Count how many candidates we have stored for a given state.
+ */
+function countStateData(allCandidates, voterState) {
+  return allCandidates.filter((c) => {
+    const cState = c.state || c.district_zip_map?.state;
+    return cState === voterState;
+  }).length;
+}
+
+/**
  * Discover any races missing from the DB for the voter's districts.
  * Runs asynchronously — does not block the caller.
+ *
+ * If the state has NO candidates at all → fire the full state seeder which
+ * scrapes overview pages for every race in the state at once.
+ *
+ * If the state has some data but a specific district is missing → fall back
+ * to per-district scraping.
  *
  * @param {object} districts  - { congressional, state_senate, state_house }
  * @param {string} voterState - 2-letter state abbreviation
@@ -90,55 +112,59 @@ async function saveCandidates(candidates) {
 export function triggerDiscovery(districts, voterState, allCandidates) {
   if (!voterState) return;
 
-  const tasks = [];
+  const stateCount = countStateData(allCandidates, voterState);
 
-  // US Senate — statewide, always check
-  if (!hasRace(allCandidates, "us_senate", voterState, null)) {
-    tasks.push({ state: voterState, raceType: "us_senate", districtNum: null });
+  // ── Full-state seeding: no candidates at all for this state ──────────────
+  if (stateCount === 0 && !isSeedingInProgress(voterState)) {
+    console.log(`[RaceDiscovery] No data for ${voterState} — triggering full state seed`);
+    seedStateRaces(voterState).catch((err) =>
+      console.error(`[RaceDiscovery] Full seed failed for ${voterState}: ${err.message}`)
+    );
+    return;
   }
 
-  // US House
+  // ── Per-district fallback: state has data but specific districts missing ──
+  const tasks = [];
+
+  if (!hasRace(allCandidates, "us_senate", voterState, null)) {
+    tasks.push({ state: voterState, raceType: "us_senate", districtNum: null, skipPhotos: true });
+  }
+
   if (districts.congressional) {
     const parsed = parseDistrict(districts.congressional);
     if (parsed && !hasRace(allCandidates, "us_house", voterState, districts.congressional)) {
-      tasks.push({ state: voterState, raceType: "us_house", districtNum: parsed.districtNum });
+      tasks.push({ state: voterState, raceType: "us_house", districtNum: parsed.districtNum, skipPhotos: true });
     }
   }
 
-  // State Senate
   if (districts.state_senate) {
     const parsed = parseDistrict(districts.state_senate);
     if (parsed && !hasRace(allCandidates, "state_senate", voterState, districts.state_senate)) {
-      tasks.push({ state: voterState, raceType: "state_senate", districtNum: parsed.districtNum });
+      tasks.push({ state: voterState, raceType: "state_senate", districtNum: parsed.districtNum, skipPhotos: true });
     }
   }
 
-  // State House
   if (districts.state_house) {
     const parsed = parseDistrict(districts.state_house);
     if (parsed && !hasRace(allCandidates, "state_house", voterState, districts.state_house)) {
-      tasks.push({ state: voterState, raceType: "state_house", districtNum: parsed.districtNum });
+      tasks.push({ state: voterState, raceType: "state_house", districtNum: parsed.districtNum, skipPhotos: true });
     }
   }
 
-  if (!tasks.length) return; // nothing to discover
+  if (!tasks.length) return;
 
-  // Fire the discovery work asynchronously
   (async () => {
     for (const task of tasks) {
       const key = `${task.state}|${task.raceType}|${task.districtNum}`;
-      if (inFlight.has(key)) {
-        console.log(`[RaceDiscovery] Already discovering: ${key}`);
-        continue;
-      }
+      if (inFlight.has(key)) continue;
       inFlight.add(key);
       try {
-        console.log(`[RaceDiscovery] Starting discovery: ${key}`);
+        console.log(`[RaceDiscovery] Starting: ${key}`);
         const candidates = await discoverRaceCandidates(task);
         await saveCandidates(candidates);
-        console.log(`[RaceDiscovery] Done: ${key} — ${candidates.length} candidates saved`);
+        console.log(`[RaceDiscovery] Done: ${key} — ${candidates.length} saved`);
       } catch (err) {
-        console.error(`[RaceDiscovery] Error for ${key}: ${err.message}`);
+        console.error(`[RaceDiscovery] Error ${key}: ${err.message}`);
       } finally {
         inFlight.delete(key);
       }
