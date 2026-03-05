@@ -57,6 +57,9 @@ export default function MapView({
     };
   }, []);
 
+  // Track the latest ZIP centroid so local zoom always snaps to the right city.
+  const zipCenterRef = useRef(null);
+
   // Sidebar level -> map zoom preset.
   // Fires immediately on tab switch but skips if the user is mid-interaction.
   const prevLevelRef = useRef(level);
@@ -73,18 +76,43 @@ export default function MapView({
     const PRESETS = { federal: 6, state: 7, local: 14 };
     const targetZoom = PRESETS[level];
     if (typeof targetZoom === "number") {
-      // For local, fly into Austin City Council District 9 (Qadri's jurisdiction).
-      const localCenter = level === "local" ? [30.3050, -97.7350] : map.getCenter();
-      map.flyTo(localCenter, targetZoom, { duration: 0.8 });
-    }
-  }, [level]);
+      let flyCenter = map.getCenter();
+      if (level === "state") {
+        flyCenter = [31.0, -98.5];
+      } else if (level === "local") {
+        // Compute centroid of local candidates so we zoom to where their icons are.
+        const localCandidates = candidates.filter(
+          (c) => c.office_level === "local" || c.office_level === "city"
+        );
+        const pts = localCandidates
+          .map((c) => {
+            const geo = c.geo || {};
+            const lat = geo.lat ?? geo.geojson_point?.coordinates?.[1];
+            const lng = geo.lng ?? geo.geojson_point?.coordinates?.[0];
+            return typeof lat === "number" && typeof lng === "number" ? [lat, lng] : null;
+          })
+          .filter(Boolean);
 
-  // Fly to ZIP center when it changes
+        if (pts.length > 0) {
+          const avgLat = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+          const avgLng = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+          flyCenter = [avgLat, avgLng];
+        } else {
+          // Fallback to ZIP centroid if no candidate coords available yet.
+          flyCenter = zipCenterRef.current ?? map.getCenter();
+        }
+      }
+      map.flyTo(flyCenter, targetZoom, { duration: 0.8 });
+    }
+  }, [level, candidates]);
+
+  // Fly to ZIP center when it changes; store it so local zoom can reuse it.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !center) return;
     const [lng, lat] = center;
     if (typeof lng === "number" && typeof lat === "number") {
+      zipCenterRef.current = [lat, lng];
       const currentZoom = map.getZoom();
       map.flyTo([lat, lng], currentZoom, { duration: 1.0 });
     }

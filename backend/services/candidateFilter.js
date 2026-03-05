@@ -25,6 +25,13 @@ export function isAllowedCandidate(c) {
   return true;
 }
 
+// Normalize district strings for comparison: "HD-049" == "HD-49", "SD-014" == "SD-14"
+function normalizeDistrict(d) {
+  if (!d) return "";
+  // Remove leading zeros from the numeric portion only.
+  return d.replace(/(\D+)0*(\d+)/, (_, prefix, num) => `${prefix}${parseInt(num, 10)}`);
+}
+
 export function filterCandidates(candidates, districts, level) {
   if (!Array.isArray(candidates)) return [];
 
@@ -37,16 +44,42 @@ export function filterCandidates(candidates, districts, level) {
     return c.district === districts.congressional;
   };
 
-  // State: any state-level race in Texas.
+  // State: statewide offices (no district) always show; district-specific offices
+  // (state house / state senate) only show if they match the voter's district.
   const isState = (c) => {
     if (c.office_level !== "state") return false;
     if (c.jurisdiction !== "Texas") return false;
-    return true;
+
+    // No district on the candidate = statewide race, always include.
+    if (!c.district) return true;
+
+    const cd = normalizeDistrict(c.district);
+
+    // State house race — match voter's house district.
+    if (/^HD-/i.test(cd)) {
+      return cd === normalizeDistrict(districts.state_house);
+    }
+
+    // State senate race — match voter's senate district.
+    if (/^SD-/i.test(cd) || /^TX-SD/i.test(cd)) {
+      return cd === normalizeDistrict(districts.state_senate);
+    }
+
+    // Anything else with a district (e.g. TX- congressional run from state level) — skip.
+    return false;
   };
 
-  // Local: city/council level races.
-  const isLocal = (c) =>
-    c.office_level === "local" || c.office_level === "city";
+  // Local: city/council/county level races filtered by the voter's locality.
+  const isLocal = (c) => {
+    if (c.office_level !== "local" && c.office_level !== "city") return false;
+    // If the candidate has a jurisdiction and we know the voter's locality,
+    // only show candidates whose jurisdiction matches.
+    if (c.jurisdiction && districts.locality) {
+      return c.jurisdiction.toLowerCase().includes(districts.locality.toLowerCase()) ||
+             districts.locality.toLowerCase().includes(c.jurisdiction.toLowerCase());
+    }
+    return true;
+  };
 
   if (level === "federal") return pool.filter(isFederal);
   if (level === "state") return pool.filter(isState);

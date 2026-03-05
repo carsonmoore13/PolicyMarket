@@ -407,7 +407,278 @@ const RACES = [
     ],
   },
 
+  {
+    // TX-20: Majority of San Antonio (deep-blue). Castro (D) won primary 89.5%; Baez (R) won R primary.
+    office: "U.S. House",
+    office_level: "federal",
+    jurisdiction: "Texas",
+    district: "TX-20",
+    candidates: [
+      {
+        name: "Joaquin Castro",
+        party: "D",
+        status: "nominee",
+        slug: "Joaquin_Castro",
+        // San Antonio, TX — longtime TX-20 incumbent
+        home: { lat: 29.4200, lng: -98.5100, city: "San Antonio, TX" },
+        policies: [
+          "Expanding healthcare access & protecting the ACA",
+          "Immigration reform & pathway to citizenship",
+          "Investing in education & workforce training",
+          "Gun safety legislation",
+          "Clean energy & climate action",
+        ],
+      },
+      {
+        name: "Edgardo Baez",
+        party: "R",
+        status: "nominee",
+        slug: "Edgardo_Baez",
+        // San Antonio, TX — attorney & Army veteran
+        home: { lat: 29.4600, lng: -98.5300, city: "San Antonio, TX" },
+        policies: [
+          "Border security & immigration enforcement",
+          "Second Amendment rights",
+          "Veterans benefits & military support",
+          "Reducing government spending & taxation",
+          "School choice & parental rights in education",
+        ],
+      },
+    ],
+  },
+
+  // ── STATE (additional statewide offices) ────────────────────────────────
+  {
+    // Agriculture Commissioner: Sheets (R) upset incumbent Sid Miller; Tucker (D) ran unopposed
+    office: "Agriculture Commissioner",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: null,
+    candidates: [
+      {
+        name: "Nate Sheets",
+        party: "R",
+        status: "nominee",
+        slug: "Nate_Sheets",
+        // Wimberley, TX (Hays County) — beekeeper & Navy veteran
+        home: { lat: 29.9972, lng: -98.0967, city: "Wimberley, TX" },
+        policies: [
+          "Cleaning up corruption at the ag department",
+          "Supporting Texas farmers & ranchers",
+          "Opposing government overreach on private land",
+          "Expanding rural broadband & water infrastructure",
+          "Veteran-focused agricultural programs",
+        ],
+      },
+      {
+        name: "Clayton Tucker",
+        party: "D",
+        status: "nominee",
+        slug: "Clayton_Tucker",
+        photo_override: "https://s3.amazonaws.com/ballotpedia-api4/files/Clayton_Tucker_2026.jpg",
+        // Lampasas, TX — rancher
+        home: { lat: 31.0612, lng: -98.1931, city: "Lampasas, TX" },
+        policies: [
+          "Supporting family-owned farms over agribusiness",
+          "Expanding rural healthcare & infrastructure",
+          "Sustainable & regenerative agriculture",
+          "Water rights protection for small ranchers",
+          "Food safety & consumer transparency",
+        ],
+      },
+    ],
+  },
+  {
+    // Land Commissioner: Buckingham (R) ran unopposed; D nominee TBD from primary
+    office: "Land Commissioner",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: null,
+    candidates: [
+      {
+        name: "Dawn Buckingham",
+        party: "R",
+        status: "nominee",
+        slug: "Dawn_Buckingham",
+        // Lake Travis area, Austin suburbs
+        home: { lat: 30.4100, lng: -97.9200, city: "Lago Vista, TX" },
+        policies: [
+          "Protecting Texas public lands & Alamo",
+          "Expanding veterans land board programs",
+          "Disaster recovery & Hurricane Harvey lessons",
+          "Energy production on state-owned land",
+          "Permanent School Fund stewardship",
+        ],
+      },
+    ],
+  },
+
+  // ── STATE HOUSE ──────────────────────────────────────────────────────────
+  {
+    // HD-121 (North-Central San Antonio): LaHood (R, incumbent) defeated McArthur in primary;
+    // Zack Dunn (D) won unopposed. National Dems targeting this seat.
+    office: "TX House of Representatives",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: "HD-121",
+    candidates: [
+      {
+        name: "Marc LaHood",
+        party: "R",
+        status: "nominee",
+        slug: "Marc_LaHood",
+        // North-central San Antonio — criminal defense attorney
+        home: { lat: 29.5350, lng: -98.5010, city: "San Antonio, TX (HD-121)" },
+        policies: [
+          "Property tax relief & appraisal reform",
+          "Criminal justice targeting abusers & predators",
+          "Teacher compensation & classroom resources",
+          "Parental rights in education (school choice)",
+          "Reducing regulatory burden on small businesses",
+        ],
+      },
+      {
+        name: "Zack Dunn",
+        party: "D",
+        status: "nominee",
+        slug: "Zack_Dunn",
+        // North San Antonio — SVU prosecutor & Air Force veteran
+        home: { lat: 29.5280, lng: -98.5080, city: "San Antonio, TX (HD-121)" },
+        policies: [
+          "Protecting survivors of domestic violence & sexual assault",
+          "Fully funding public schools & teacher pay",
+          "Expanding veterans services & military family support",
+          "Reproductive rights & healthcare access",
+          "Affordable housing & economic opportunity",
+        ],
+      },
+    ],
+  },
+  {
+    // HD-47 (SW Austin): Vacated by Goodwin (running for Lt. Gov.)
+    // D: Pooja Sethi won with 76%; R: Jennifer Mushtaler won GOP primary
+    office: "TX House of Representatives",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: "HD-47",
+    candidates: [
+      {
+        name: "Pooja Sethi",
+        party: "D",
+        status: "nominee",
+        slug: "Pooja_Sethi",
+        // SW Austin / Travis County (HD-47 covers western Austin & Lake Travis corridor)
+        home: { lat: 30.2200, lng: -97.8600, city: "Austin, TX (HD-47)" },
+        policies: [
+          "Reforming school funding & ending recapture",
+          "Reproductive rights & healthcare access",
+          "Affordable housing in SW Austin",
+          "Immigration reform & immigrant rights",
+          "Environmental protection & clean energy",
+        ],
+      },
+      {
+        name: "Jennifer Mushtaler",
+        party: "R",
+        status: "nominee",
+        slug: "Jennifer_Mushtaler",
+        // SW Austin area
+        home: { lat: 30.2100, lng: -97.8800, city: "Austin, TX (HD-47)" },
+        policies: [
+          "Fiscal conservatism & lower taxes",
+          "Parental rights in education",
+          "Public safety & law enforcement funding",
+          "Property rights & reduced regulation",
+          "Business-friendly economic policies",
+        ],
+      },
+    ],
+  },
+  {
+    // HD-49 (UT / West Campus): Vacated by Hinojosa (running for Gov.)
+    // D Runoff May 26: Garibay (32.9%) vs Tovo (28.2%)
+    office: "TX House of Representatives",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: "HD-49",
+    candidates: [
+      {
+        name: "Montserrat Garibay",
+        party: "D",
+        status: "runoff",
+        slug: "Montserrat_Garibay",
+        // Central Austin / UT campus area
+        home: { lat: 30.2860, lng: -97.7390, city: "Austin, TX (HD-49)" },
+        policies: [
+          "Public education funding & ending vouchers",
+          "Reproductive rights & bodily autonomy",
+          "Labor rights & union protections",
+          "Affordable housing near UT campus",
+          "Freedom of speech in higher education",
+        ],
+      },
+      {
+        name: "Kathie Tovo",
+        party: "D",
+        status: "runoff",
+        slug: "Kathie_Tovo",
+        photo_override: "https://cbsaustin.com/resources/media/a4c0f71d-a519-4a2b-b345-db93290a574a-large16x9_KathieTovocityofaustinimage.jpg",
+        // West Campus / UT area — former city council member
+        home: { lat: 30.2920, lng: -97.7450, city: "Austin, TX (HD-49)" },
+        policies: [
+          "Protecting academic freedom at UT",
+          "Affordable housing & tenant protections",
+          "Expanding Medicaid & healthcare access",
+          "Environmental sustainability & clean energy",
+          "Community-centered policing reform",
+        ],
+      },
+    ],
+  },
+
   // ── LOCAL ────────────────────────────────────────────────────────────────
+  {
+    // Bexar County Judge: Nirenberg (D) defeated incumbent Sakai 62-38% in primary;
+    // Von Dohlen (R) ran unopposed in GOP primary. Covers all of Bexar County (78248).
+    office: "Bexar County Judge",
+    office_level: "local",
+    jurisdiction: "San Antonio",
+    district: null,
+    candidates: [
+      {
+        name: "Ron Nirenberg",
+        party: "D",
+        status: "nominee",
+        slug: "Ron_Nirenberg",
+        photo_override: "https://sanantonioreport.org/wp-content/uploads/2025/12/ron-nirenberg-1.png",
+        // Former SA Mayor, lives in San Antonio (District 8 area)
+        home: { lat: 29.4900, lng: -98.5700, city: "San Antonio, TX" },
+        policies: [
+          "Regional infrastructure & growth planning",
+          "Reducing jail overcrowding with reform-first approach",
+          "Affordable housing & economic opportunity",
+          "Expanding workforce development & healthcare access",
+          "Transparent, efficient county government",
+        ],
+      },
+      {
+        name: "Patrick Von Dohlen",
+        party: "R",
+        status: "nominee",
+        slug: "Patrick_Von_Dohlen",
+        photo_override: "https://sanantonioreport.org/wp-content/uploads/2021/04/Patrick_Von_Dohlen.jpg",
+        // North-central San Antonio (ran repeatedly in Council District 9)
+        home: { lat: 29.5100, lng: -98.5400, city: "San Antonio, TX" },
+        policies: [
+          "Fiscal conservatism & cutting county waste",
+          "Criminal justice & public safety focus",
+          "Opposing taxpayer-funded progressive initiatives",
+          "Property rights & limited government",
+          "Conservative family values legislation",
+        ],
+      },
+    ],
+  },
   {
     office: "Austin City Council District 9",
     office_level: "local",
@@ -447,7 +718,9 @@ export async function fetchPostPrimary2026Candidates() {
       if (cd.party !== "D" && cd.party !== "R") continue;
 
       console.log(`  → Fetching photo for ${cd.name} (${cd.party})…`);
-      const { photo_url, ballotpedia_url } = await scrapeBallotpediaPhoto(cd.slug);
+      let { photo_url, ballotpedia_url } = await scrapeBallotpediaPhoto(cd.slug);
+      // Use a manually verified photo URL if one is provided.
+      if (cd.photo_override) photo_url = cd.photo_override;
 
       const officeLabel = race.office + (race.district ? ` ${race.district}` : "");
 
@@ -465,7 +738,7 @@ export async function fetchPostPrimary2026Candidates() {
         policies: cd.policies || [],
         photo: {
           url: photo_url || null,
-          source: photo_url ? "ballotpedia" : null,
+          source: photo_url ? (cd.photo_override ? "manual" : "ballotpedia") : null,
           verified: Boolean(photo_url),
           last_fetched: now,
           fallback_initials: initials(cd.name),
