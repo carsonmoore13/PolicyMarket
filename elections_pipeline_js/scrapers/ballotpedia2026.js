@@ -582,6 +582,7 @@ const RACES = [
         party: "D",
         status: "nominee",
         slug: "Joe_P._Herrera",
+        photo_override: "https://s3.amazonaws.com/ballotpedia-api4/files/thumbs/200/300/JoeHerrera.jpg",
         // Natalia, TX (Medina County) — food industry professional
         home: { lat: 29.1910, lng: -98.8620, city: "Natalia, TX" },
         policies: [
@@ -621,6 +622,7 @@ const RACES = [
         party: "D",
         status: "nominee",
         slug: "Kathryn_Hartmann",
+        photo_override: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUS-3Fr3PJLBIkrRmxIWHq_yYusujXdHAxBw&s",
         // Kerrville, TX — HD-53 Democrat
         home: { lat: 30.0474, lng: -99.1403, city: "Kerrville, TX" },
         policies: [
@@ -811,6 +813,7 @@ const RACES = [
         party: "R",
         status: "nominee",
         slug: "Bryan_Wilson_(Burnet_County_Judge,_Texas,_candidate_2026)",
+        photo_override: "/bryan_wilson.png",
         // Burnet, TX — acting county judge since March 2025
         home: { lat: 30.7591, lng: -98.2326, city: "Burnet, TX" },
         policies: [

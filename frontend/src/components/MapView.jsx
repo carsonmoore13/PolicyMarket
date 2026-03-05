@@ -63,12 +63,24 @@ export default function MapView({
   // Sidebar level -> map zoom preset.
   // Fires immediately on tab switch but skips if the user is mid-interaction.
   const prevLevelRef = useRef(level);
+  // True once we've successfully flown to real local candidate coordinates.
+  // Resets to false whenever the level changes so the next local visit re-centers.
+  const localZoomAppliedRef = useRef(false);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !level) return;
-    // Only apply preset when the level tab actually changes.
-    if (level === prevLevelRef.current) return;
-    prevLevelRef.current = level;
+
+    const levelChanged = level !== prevLevelRef.current;
+    if (levelChanged) {
+      prevLevelRef.current = level;
+      localZoomAppliedRef.current = false; // reset on every tab switch
+    }
+
+    // For non-local tabs: only run on the initial tab switch, not on later
+    // candidate refreshes.  For the local tab: also run when candidates
+    // arrive (if we haven't yet found valid coords for this visit).
+    if (!levelChanged && !(level === "local" && !localZoomAppliedRef.current)) return;
 
     // Don't interrupt an active user zoom/pan.
     if (userInteractingRef.current) return;
@@ -81,10 +93,7 @@ export default function MapView({
         flyCenter = [31.0, -98.5];
       } else if (level === "local") {
         // Compute centroid of local candidates so we zoom to where their icons are.
-        const localCandidates = candidates.filter(
-          (c) => c.office_level === "local" || c.office_level === "city"
-        );
-        const pts = localCandidates
+        const pts = candidates
           .map((c) => {
             const geo = c.geo || {};
             const lat = geo.lat ?? geo.geojson_point?.coordinates?.[1];
@@ -97,8 +106,10 @@ export default function MapView({
           const avgLat = pts.reduce((s, p) => s + p[0], 0) / pts.length;
           const avgLng = pts.reduce((s, p) => s + p[1], 0) / pts.length;
           flyCenter = [avgLat, avgLng];
+          localZoomAppliedRef.current = true; // mark as done — don't re-center on future refreshes
         } else {
-          // Fallback to ZIP centroid if no candidate coords available yet.
+          // Candidates haven't loaded yet — use ZIP centroid as temporary fallback.
+          // localZoomAppliedRef stays false so we re-run once candidates arrive.
           flyCenter = zipCenterRef.current ?? map.getCenter();
         }
       }
