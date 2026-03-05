@@ -1,20 +1,25 @@
 export const PARTY_COLORS = {
-  Republican: "#ef4444",
-  Democrat: "#3b82f6",
-  Democratic: "#3b82f6",
-  Independent: "#8b5cf6",
-  Libertarian: "#f59e0b",
-  Green: "#10b981",
+  R: "#ef4444",
+  D: "#3b82f6",
+  I: "#8b5cf6",
+  IND: "#8b5cf6",
+  LIB: "#f59e0b",
+  GRN: "#10b981",
   default: "#6b7280",
 };
 
 export function getPartyColor(party) {
   if (!party) return PARTY_COLORS.default;
-  const lower = party.toLowerCase();
-  const key = Object.keys(PARTY_COLORS).find((k) =>
-    lower.includes(k.toLowerCase()),
-  );
-  return key ? PARTY_COLORS[key] : PARTY_COLORS.default;
+  const code = party.toString().trim().toUpperCase();
+  // Direct code match first (D, R, I, etc.)
+  if (PARTY_COLORS[code]) return PARTY_COLORS[code];
+  // Substring match for verbose strings
+  if (code.startsWith("REP") || code.includes("REPUBLICAN")) return PARTY_COLORS.R;
+  if (code.startsWith("DEM") || code.includes("DEMOCRAT")) return PARTY_COLORS.D;
+  if (code.startsWith("IND")) return PARTY_COLORS.I;
+  if (code.startsWith("LIB")) return PARTY_COLORS.LIB;
+  if (code.startsWith("GRN") || code.includes("GREEN")) return PARTY_COLORS.GRN;
+  return PARTY_COLORS.default;
 }
 
 export function getPartyBgClass(party) {

@@ -113,7 +113,9 @@ async function computeCentroid(officeLevel, jurisdiction, district) {
         }
       }
     }
-    const [lat, lng] = dc.TEXAS_CENTROID;
+    // For statewide offices without a specific district (e.g., Governor),
+    // use Austin as the representative location instead of the raw state centroid.
+    const [lat, lng] = dc.AUSTIN_CENTROID || dc.TEXAS_CENTROID;
     return createGeoPoint({
       jurisdiction_name: jurisdictionName,
       lat,
@@ -143,7 +145,9 @@ async function computeCentroid(officeLevel, jurisdiction, district) {
         }
       }
     }
-    const [lat, lng] = dc.TEXAS_CENTROID;
+    // For statewide federal offices (U.S. Senate) where district is null,
+    // also use Austin as the representative "base" location.
+    const [lat, lng] = dc.AUSTIN_CENTROID || dc.TEXAS_CENTROID;
     return createGeoPoint({
       jurisdiction_name: jurisdictionName,
       lat,

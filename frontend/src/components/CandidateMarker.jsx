@@ -1,7 +1,12 @@
 import { getPartyColor } from "../utils/partyColors.js";
 
+const PARTY_LABEL = { D: "DEM", R: "REP", I: "IND" };
+
 export default function CandidateMarker({ candidate, isSelected, onClick }) {
   const color = getPartyColor(candidate.party);
+  const partyCode = (candidate.party || "").toString().trim().toUpperCase();
+  const partyLabel = PARTY_LABEL[partyCode] || partyCode;
+
   const initials =
     candidate.photo?.fallback_initials ||
     (candidate.name || "")
@@ -10,41 +15,61 @@ export default function CandidateMarker({ candidate, isSelected, onClick }) {
       .slice(0, 2)
       .map((p) => p[0]?.toUpperCase())
       .join("");
-  const title = `${candidate.name} — ${candidate.office}${
-    candidate.district ? ` ${candidate.district}` : ""
-  }`;
+
+  const hasRealPhoto =
+    candidate.photo?.url && candidate.photo?.source !== "gravatar_fallback";
+
+  const isRunoff = candidate.status_2026 === "runoff";
+
+  const tooltip = [
+    candidate.name,
+    candidate.office,
+    isRunoff ? "RUNOFF · May 26" : null,
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
   return (
     <div
+      className="pm-candidate-marker group"
+      data-selected={isSelected ? "true" : undefined}
+      data-party={partyCode}
+      style={{ "--party-color": color }}
       onClick={onClick}
-      title={title}
-      className={`group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 text-xs font-bold text-white shadow-lg transition-transform ${
-        isSelected ? "scale-110" : "hover:scale-105"
-      }`}
-      style={{
-        borderColor: color,
-        background: `${color}dd`,
-      }}
+      title={tooltip}
     >
-      {candidate.photo?.url ? (
-        <img
-          src={candidate.photo.url}
-          alt={candidate.name || "Candidate"}
-          className="h-full w-full rounded-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-          }}
-        />
-      ) : null}
-      {!candidate.photo?.url && <span>{initials}</span>}
-      {candidate.photo?.verified && (
-        <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 text-[8px] font-bold text-black flex items-center justify-center">
-          ✓
-        </div>
-      )}
-      <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[11px] text-gray-100 opacity-0 shadow-md transition-opacity group-hover:opacity-100">
-        {title}
+      {/* Outer glow ring */}
+      <div className="pm-marker-ring" />
+
+      {/* Photo / initials circle */}
+      <div className="pm-marker-face">
+        {hasRealPhoto ? (
+          <img
+            src={candidate.photo.url}
+            alt={candidate.name || "Candidate"}
+            className="pm-marker-photo"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              e.currentTarget.nextSibling.style.display = "flex";
+            }}
+          />
+        ) : null}
+        <span
+          className="pm-marker-initials"
+          style={{ display: hasRealPhoto ? "none" : "flex" }}
+        >
+          {initials}
+        </span>
       </div>
+
+      {/* Party label pill below the circle */}
+      <div className="pm-marker-label">{partyLabel}</div>
+
+      {/* Runoff indicator dot */}
+      {isRunoff && <div className="pm-marker-runoff-dot" title="Runoff · May 26" />}
+
+      {/* Hover tooltip */}
+      <div className="pm-marker-tooltip">{tooltip}</div>
     </div>
   );
 }
-

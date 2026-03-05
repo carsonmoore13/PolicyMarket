@@ -41,37 +41,41 @@ export default function MapView({
     };
   }, []);
 
-  // Map zoom -> level mapping
+  // Track whether the user is actively interacting with the map.
+  const userInteractingRef = useRef(false);
+
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !onLevelFromZoom) return;
-
-    const handleZoom = () => {
-      const z = map.getZoom();
-      let nextLevel = "federal";
-      if (z >= 10) nextLevel = "local";
-      else if (z >= 6) nextLevel = "state";
-      onLevelFromZoom(nextLevel);
-    };
-
-    map.on("zoomend", handleZoom);
+    if (!map) return;
+    const onStart = () => { userInteractingRef.current = true; };
+    const onEnd   = () => { userInteractingRef.current = false; };
+    map.on("zoomstart mousedown touchstart", onStart);
+    map.on("zoomend  mouseup  touchend",   onEnd);
     return () => {
-      map.off("zoomend", handleZoom);
+      map.off("zoomstart mousedown touchstart", onStart);
+      map.off("zoomend  mouseup  touchend",   onEnd);
     };
-  }, [onLevelFromZoom]);
+  }, []);
 
-  // Sidebar level -> map zoom snapping
+  // Sidebar level -> map zoom preset.
+  // Fires immediately on tab switch but skips if the user is mid-interaction.
+  const prevLevelRef = useRef(level);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !level) return;
+    // Only apply preset when the level tab actually changes.
+    if (level === prevLevelRef.current) return;
+    prevLevelRef.current = level;
 
-    let targetZoom;
-    if (level === "federal") targetZoom = 4;
-    else if (level === "state") targetZoom = 7;
-    else if (level === "local") targetZoom = 11;
+    // Don't interrupt an active user zoom/pan.
+    if (userInteractingRef.current) return;
 
-    if (typeof targetZoom === "number" && map.getZoom() !== targetZoom) {
-      map.setZoom(targetZoom);
+    const PRESETS = { federal: 6, state: 7, local: 14 };
+    const targetZoom = PRESETS[level];
+    if (typeof targetZoom === "number") {
+      // For local, fly into Austin City Council District 9 (Qadri's jurisdiction).
+      const localCenter = level === "local" ? [30.3050, -97.7350] : map.getCenter();
+      map.flyTo(localCenter, targetZoom, { duration: 0.8 });
     }
   }, [level]);
 
@@ -135,7 +139,8 @@ export default function MapView({
       const icon = L.divIcon({
         html: el,
         className: "pm-marker-wrapper",
-        iconSize: [44, 44],
+        iconSize: [56, 72],  // wider+taller to include the label pill below
+        iconAnchor: [28, 56],
       });
 
       const marker = L.marker([jLat, jLng], { icon }).addTo(map);
@@ -157,9 +162,10 @@ export default function MapView({
 
     let targetZoom = map.getZoom();
     const lvl = (c.office_level || "").toLowerCase();
-    if (lvl === "federal") targetZoom = 4;
-    else if (lvl === "state") targetZoom = 7;
-    else if (lvl === "city") targetZoom = 11;
+    // For House districts, zoom closer so the district is inspectable.
+    if (lvl === "federal") targetZoom = 9;
+    else if (lvl === "state") targetZoom = 8;
+    else if (lvl === "city") targetZoom = 13;
 
     map.flyTo([lat, lng], targetZoom, { duration: 0.9 });
   }, [selectedCandidate]);

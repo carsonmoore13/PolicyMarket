@@ -12,12 +12,12 @@ function getInitials(name) {
     .join("");
 }
 
-function getTags(candidate) {
+function getPolicies(candidate) {
   if (Array.isArray(candidate.policies) && candidate.policies.length > 0) {
-    return candidate.policies.slice(0, 3);
+    return candidate.policies;
   }
   if (candidate.topics && Array.isArray(candidate.topics) && candidate.topics.length) {
-    return candidate.topics.slice(0, 3);
+    return candidate.topics;
   }
   return [];
 }
@@ -152,9 +152,18 @@ export default function AppLayout({
             filteredCandidates.map((c) => {
               const initials =
                 c.photo?.fallback_initials || getInitials(c.name);
-              const tags = getTags(c);
+              const policies = getPolicies(c);
               const active =
                 selectedCandidate && selectedCandidate._id === c._id;
+              const partyCode = (c.party || "").toString().trim().toUpperCase();
+              let partyLabel = "";
+              if (partyCode === "D") partyLabel = "Democrat";
+              else if (partyCode === "R") partyLabel = "Republican";
+              else if (partyCode === "I" || partyCode === "IND") partyLabel = "Independent";
+              else if (partyCode === "OTH") partyLabel = "Other";
+              else if (partyCode) partyLabel = partyCode;
+              // Always show some label, even if the data didn't include a party.
+              if (!partyLabel) partyLabel = "Unknown";
               return (
                 <button
                   key={c._id || `${c.name}-${c.office}-${c.district}`}
@@ -162,42 +171,62 @@ export default function AppLayout({
                   className={`candidate-card ${active ? "bg-active" : ""}`}
                   onClick={() => onSelectCandidate(c)}
                 >
-                  <div className="avatar-placeholder overflow-hidden rounded-full">
-                    {c.photo?.url ? (
+                  <div
+                    className="pm-sidebar-avatar"
+                    style={{ "--party-color": (c.party || "").toUpperCase() === "R" ? "#ef4444" : (c.party || "").toUpperCase() === "D" ? "#3b82f6" : "#6b7280" }}
+                  >
+                    {c.photo?.url && c.photo?.source !== "gravatar_fallback" ? (
                       <img
                         src={c.photo.url}
                         alt={c.name || "Candidate"}
-                        className="h-full w-full object-cover"
+                        className="pm-sidebar-avatar-img"
                         onError={(e) => {
                           e.currentTarget.style.display = "none";
+                          e.currentTarget.nextSibling.style.display = "flex";
                         }}
                       />
                     ) : null}
-                    {!c.photo?.url && (
-                      <span>{initials || "IMG"}</span>
-                    )}
-                    {c.photo?.verified && (
-                      <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 text-[8px] font-bold text-black flex items-center justify-center">
-                        ✓
-                      </div>
-                    )}
+                    <span
+                      className="pm-sidebar-avatar-initials"
+                      style={{ display: (c.photo?.url && c.photo?.source !== "gravatar_fallback") ? "none" : "flex" }}
+                    >
+                      {initials || "?"}
+                    </span>
                   </div>
                   <div className="card-content">
                     <div className="candidate-name">
                       {c.name || "Unknown candidate"}
-                      <span className="party-badge">
-                        {(c.party || "").toUpperCase()}
-                      </span>
+                      {partyLabel && (
+                        <span
+                          className="party-badge"
+                          style={{
+                            borderColor: (c.party || "").toUpperCase() === "R" ? "#ef444460" : (c.party || "").toUpperCase() === "D" ? "#3b82f660" : undefined,
+                            color: (c.party || "").toUpperCase() === "R" ? "#ef4444" : (c.party || "").toUpperCase() === "D" ? "#3b82f6" : undefined,
+                          }}
+                        >
+                          {partyLabel}
+                        </span>
+                      )}
                     </div>
                     <div className="candidate-role">
                       {c.office || "Office"}
                       {c.district ? ` · ${c.district}` : ""}
                     </div>
-                    {tags.length > 0 && (
-                      <div className="policy-tags">
-                        {tags.map((t) => (
-                          <span key={t} className="tag">
-                            {t}
+                    {c.home_city && (
+                      <div style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 2 }}>
+                        📍 {c.home_city}
+                        {c.status_2026 === "runoff" && (
+                          <span style={{ marginLeft: 6, color: "#f59e0b", fontWeight: 600 }}>
+                            RUNOFF
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {policies.length > 0 && (
+                      <div className="policy-tags" style={{ marginTop: 6 }}>
+                        {policies.map((p) => (
+                          <span key={p} className="tag" title={p}>
+                            {p}
                           </span>
                         ))}
                       </div>

@@ -10,23 +10,9 @@ export async function lookupZip(zip) {
   return res.data;
 }
 
-export async function fetchCandidatesByZip(zip) {
-  const res = await api.get(`/api/candidates`, { params: { zip } });
-  return res.data;
-}
-
 export async function fetchCandidates(zip, level) {
-  // Backward-compatible wrapper that uses the richer ZIP endpoint
-  const payload = await fetchCandidatesByZip(zip);
-  const list = Array.isArray(payload?.candidates) ? payload.candidates : [];
-  const lvl = (level || "federal").toLowerCase();
-  if (!["federal", "state", "local"].includes(lvl)) return list;
-  return list.filter((c) => {
-    const ol = (c.office_level || "").toLowerCase();
-    if (lvl === "local") return ol === "city";
-    if (lvl === "state") return ol === "state";
-    return ol === "federal";
-  });
+  const res = await api.get(`/api/candidates`, { params: { zip, level } });
+  return res.data;
 }
 
 export async function fetchAllCandidates() {

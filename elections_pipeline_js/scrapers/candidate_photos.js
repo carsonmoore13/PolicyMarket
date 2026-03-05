@@ -182,7 +182,7 @@ async function tryFec(candidate) {
   }
 }
 
-// --- Priority 3: Official website (.gov / texas.gov / austintexas.gov) ---
+// --- Priority 3: Official / campaign websites ---
 
 function isOfficialGovUrl(url) {
   if (!url) return false;
@@ -241,6 +241,68 @@ async function tryOfficialSite(candidate) {
   }
 }
 
+// For DEM/REP/IND candidates, attempt to scrape a headshot from a known
+// campaign URL if one is present on the candidate object. This is more
+// aggressive and may pick up non-official crops, so we only run it for
+// the major parties plus declared independents.
+async function tryCampaignSite(candidate) {
+  const party = (candidate.party || "").toString().trim().toUpperCase();
+  if (!(party === "D" || party === "R" || party === "I" || party === "IND"))
+    return null;
+
+  const srcUrl =
+    candidate.campaign_url ||
+    candidate.website ||
+    candidate.campaign_website ||
+    "";
+  if (!srcUrl) return null;
+
+  try {
+    const res = await safeGet(srcUrl, { responseType: "text" });
+    const html = res.data;
+    const $ = cheerio.load(html);
+    const nameLower = (candidate.name || "").toLowerCase();
+
+    let bestImg = null;
+    $("img").each((_, el) => {
+      const alt = ($(el).attr("alt") || "").toLowerCase();
+      const src = $(el).attr("src") || "";
+      const cls = ($(el).attr("class") || "").toLowerCase();
+      const isPortraitHint =
+        cls.includes("headshot") ||
+        cls.includes("portrait") ||
+        cls.includes("avatar") ||
+        cls.includes("profile");
+
+      if (!src) return;
+      if (
+        nameLower &&
+        (alt.includes(nameLower) || isPortraitHint || src.toLowerCase().includes("headshot"))
+      ) {
+        if (!bestImg) bestImg = src;
+      }
+    });
+    if (!bestImg) {
+      logPhotoResult(candidate, "campaign_site", "not_found");
+      return null;
+    }
+    let finalUrl = bestImg;
+    if (!/^https?:\/\//i.test(bestImg)) {
+      const base = new URL(srcUrl);
+      finalUrl = new URL(bestImg, base).toString();
+    }
+    logPhotoResult(candidate, "campaign_site", "found");
+    return {
+      url: finalUrl,
+      source: "campaign_site",
+      verified: false,
+    };
+  } catch (err) {
+    logPhotoResult(candidate, "campaign_site", `error: ${err.message}`);
+    return null;
+  }
+}
+
 // --- Priority 4: Wikipedia / Ballotpedia ---
 
 async function tryWikipedia(candidate) {
@@ -272,6 +334,66 @@ async function tryWikipedia(candidate) {
     };
   } catch (err) {
     logPhotoResult(candidate, "wikipedia", `error: ${err.message}`);
+    return null;
+  }
+}
+
+async function tryWikipediaSearch(candidate) {
+  const name = candidate.name || "";
+  if (!name) return null;
+
+  try {
+    const query = `${name} ${(candidate.jurisdiction || "Texas")}`
+      .replace(/\s+/g, " ")
+      .trim();
+    const apiUrl = "https://en.wikipedia.org/w/api.php";
+    const res = await safeGet(apiUrl, {
+      responseType: "json",
+      params: {
+        action: "query",
+        list: "search",
+        srsearch: query,
+        format: "json",
+        srlimit: 5,
+        origin: "*",
+      },
+    });
+    const search = res.data?.query?.search || [];
+    if (!search.length) {
+      logPhotoResult(candidate, "wikipedia_search", "not_found");
+      return null;
+    }
+    const hit = search[0];
+    const title = hit.title;
+    if (!title) {
+      logPhotoResult(candidate, "wikipedia_search", "not_found");
+      return null;
+    }
+    const pageSlug = title.replace(/\s+/g, "_");
+    const pageUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(pageSlug)}`;
+    const pageRes = await safeGet(pageUrl, { responseType: "text" });
+    const html = pageRes.data;
+    const $ = cheerio.load(html);
+    const img = $(".infobox img").first();
+    const src = img.attr("src");
+    if (!src) {
+      logPhotoResult(candidate, "wikipedia_search", "not_found");
+      return null;
+    }
+    let finalUrl = src;
+    if (src.startsWith("//")) {
+      finalUrl = `https:${src}`;
+    } else if (!/^https?:\/\//i.test(src)) {
+      finalUrl = `https://en.wikipedia.org${src}`;
+    }
+    logPhotoResult(candidate, "wikipedia_search", "found");
+    return {
+      url: finalUrl,
+      source: "wikipedia",
+      verified: false,
+    };
+  } catch (err) {
+    logPhotoResult(candidate, "wikipedia_search", `error: ${err.message}`);
     return null;
   }
 }
@@ -309,6 +431,59 @@ async function tryBallotpedia(candidate) {
   }
 }
 
+async function tryBallotpediaSearch(candidate) {
+  const name = candidate.name || "";
+  if (!name) return null;
+
+  try {
+    const query = `${name} ${(candidate.jurisdiction || "Texas")}`
+      .replace(/\s+/g, " ")
+      .trim();
+    const searchUrl = "https://ballotpedia.org/index.php";
+    const res = await safeGet(searchUrl, {
+      responseType: "text",
+      params: {
+        title: "Special:Search",
+        search: query,
+      },
+    });
+    const html = res.data;
+    const $ = cheerio.load(html);
+    const link = $(".mw-search-result-heading a").first();
+    const href = link.attr("href");
+    if (!href) {
+      logPhotoResult(candidate, "ballotpedia_search", "not_found");
+      return null;
+    }
+    const pageUrl = href.startsWith("http")
+      ? href
+      : `https://ballotpedia.org${href}`;
+    const pageRes = await safeGet(pageUrl, { responseType: "text" });
+    const $page = cheerio.load(pageRes.data);
+    const img = $page(".infobox img").first();
+    const src = img.attr("src");
+    if (!src) {
+      logPhotoResult(candidate, "ballotpedia_search", "not_found");
+      return null;
+    }
+    let finalUrl = src;
+    if (src.startsWith("//")) {
+      finalUrl = `https:${src}`;
+    } else if (!/^https?:\/\//i.test(src)) {
+      finalUrl = `https://ballotpedia.org${src}`;
+    }
+    logPhotoResult(candidate, "ballotpedia_search", "found");
+    return {
+      url: finalUrl,
+      source: "ballotpedia",
+      verified: false,
+    };
+  } catch (err) {
+    logPhotoResult(candidate, "ballotpedia_search", `error: ${err.message}`);
+    return null;
+  }
+}
+
 // --- Priority 5: Gravatar fallback ---
 
 function makeGravatarFallback(candidate) {
@@ -329,8 +504,11 @@ export async function fetchCandidatePhoto(candidate) {
       tryBioguide,
       tryFec,
       tryOfficialSite,
+      tryCampaignSite,
       tryWikipedia,
+      tryWikipediaSearch,
       tryBallotpedia,
+      tryBallotpediaSearch,
     ];
 
     for (const fn of attempts) {
@@ -370,7 +548,11 @@ export async function enrichAllCandidatesWithPhotos() {
   const coll = db.collection("candidates");
 
   const cursor = coll.find({
-    $or: [{ photo: { $exists: false } }, { "photo.url": null }],
+    $or: [
+      { photo: { $exists: false } },
+      { "photo.url": null },
+      { "photo.source": "gravatar_fallback" },
+    ],
   });
 
   let processed = 0;
@@ -399,18 +581,17 @@ export async function enrichAllCandidatesWithPhotos() {
 }
 
 // CLI entrypoint: node scrapers/candidate_photos.js --enrich
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const args = process.argv.slice(2);
-  if (args.includes("--enrich")) {
-    enrichAllCandidatesWithPhotos()
-      .then(() => {
-        console.log("Photo enrichment finished.");
-        process.exit(0);
-      })
-      .catch((err) => {
-        console.error("Photo enrichment failed:", err);
-        process.exit(1);
-      });
-  }
+// Simpler, cross-platform check that does not rely on import.meta.url
+const args = process.argv.slice(2);
+if (args.includes("--enrich")) {
+  enrichAllCandidatesWithPhotos()
+    .then(() => {
+      console.log("Photo enrichment finished.");
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("Photo enrichment failed:", err);
+      process.exit(1);
+    });
 }
 

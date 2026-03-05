@@ -330,6 +330,181 @@ body {
   opacity: 0.5;
 }
 
+/* ── Map marker wrapper (Leaflet divIcon) ──────────────────────────── */
+.pm-marker-wrapper {
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+/* Main marker container */
+.pm-candidate-marker {
+  position: relative;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.pm-candidate-marker:hover,
+.pm-candidate-marker[data-selected="true"] {
+  transform: scale(1.15) translateY(-2px);
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--party-color) 60%, transparent));
+  z-index: 1000 !important;
+}
+
+/* Outer glowing ring — the party-color border */
+.pm-marker-ring {
+  position: absolute;
+  inset: -3px;
+  top: -3px;
+  left: -3px;
+  width: calc(56px + 6px);
+  height: calc(56px + 6px);
+  border-radius: 50%;
+  border: 3px solid var(--party-color);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--party-color) 30%, transparent),
+    0 0 12px color-mix(in srgb, var(--party-color) 50%, transparent),
+    inset 0 0 6px color-mix(in srgb, var(--party-color) 20%, transparent);
+  pointer-events: none;
+}
+
+.pm-candidate-marker[data-selected="true"] .pm-marker-ring {
+  animation: pm-pulse-ring 1.6s ease-in-out infinite;
+}
+
+@keyframes pm-pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--party-color) 30%, transparent), 0 0 12px color-mix(in srgb, var(--party-color) 50%, transparent); }
+  50%       { box-shadow: 0 0 0 4px color-mix(in srgb, var(--party-color) 20%, transparent), 0 0 24px color-mix(in srgb, var(--party-color) 70%, transparent); }
+}
+
+/* Face circle — photo or initials */
+.pm-marker-face {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1a1a2e;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pm-marker-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  border-radius: 50%;
+}
+
+.pm-marker-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--party-color);
+  letter-spacing: -0.5px;
+  background: color-mix(in srgb, var(--party-color) 12%, #0f0f0f);
+}
+
+/* Party label pill below the circle */
+.pm-marker-label {
+  margin-top: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--party-color);
+  background: color-mix(in srgb, var(--party-color) 18%, #080808);
+  border: 1px solid color-mix(in srgb, var(--party-color) 40%, transparent);
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+/* Runoff dot — amber top-right corner */
+.pm-marker-runoff-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #080808;
+  box-shadow: 0 0 6px #f59e0b80;
+}
+
+/* Hover tooltip */
+.pm-marker-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8, 8, 8, 0.95);
+  border: 1px solid color-mix(in srgb, var(--party-color) 40%, transparent);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ededed;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+}
+
+.pm-candidate-marker:hover .pm-marker-tooltip {
+  opacity: 1;
+}
+
+/* ── Sidebar avatar ────────────────────────────────────────────────── */
+.pm-sidebar-avatar {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid var(--party-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--party-color) 35%, transparent);
+  background: color-mix(in srgb, var(--party-color) 10%, #0f0f0f);
+}
+
+.pm-sidebar-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.pm-sidebar-avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--party-color);
+  letter-spacing: -0.5px;
+}
+
 .map-area {
   background: #050505;
   position: relative;
