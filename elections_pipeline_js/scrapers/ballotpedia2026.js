@@ -408,6 +408,46 @@ const RACES = [
   },
 
   {
+    // TX-25: Hill Country / Austin suburbs. Williams (R) ran unopposed; Sims (D) won 60.5%.
+    office: "U.S. House",
+    office_level: "federal",
+    jurisdiction: "Texas",
+    district: "TX-25",
+    candidates: [
+      {
+        name: "Roger Williams",
+        party: "R",
+        status: "nominee",
+        slug: "Roger_Williams_(Texas)",
+        // Lives in Austin, TX — longtime TX-25 incumbent
+        home: { lat: 30.3000, lng: -97.7500, city: "Austin, TX" },
+        policies: [
+          "Small business growth & reducing federal regulations",
+          "Border security & immigration enforcement",
+          "Second Amendment protections",
+          "Fiscal responsibility & reducing national debt",
+          "Supporting military & veteran benefits",
+        ],
+      },
+      {
+        name: "Dione Sims",
+        party: "D",
+        status: "nominee",
+        slug: "Dione_Sims",
+        // Fort Worth, TX — IT professional & Juneteenth advocate
+        home: { lat: 32.7555, lng: -97.3308, city: "Fort Worth, TX" },
+        policies: [
+          "Lowering grocery & healthcare costs",
+          "Fully funding public schools",
+          "Immigration dignity & humane policy",
+          "Worker protections & fair wages",
+          "Expanding rural broadband & infrastructure",
+        ],
+      },
+    ],
+  },
+
+  {
     // TX-20: Majority of San Antonio (deep-blue). Castro (D) won primary 89.5%; Baez (R) won R primary.
     office: "U.S. House",
     office_level: "federal",
@@ -514,6 +554,85 @@ const RACES = [
   },
 
   // ── STATE HOUSE ──────────────────────────────────────────────────────────
+  {
+    // SD-24 (Hill Country / South Texas): Flores (R, incumbent) won primary; Herrera (D) won unopposed.
+    // This seat IS on the 2026 ballot — Flores won in 2022 (4-year term).
+    office: "TX State Senate",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: "SD-24",
+    candidates: [
+      {
+        name: "Peter P. Flores",
+        party: "R",
+        status: "nominee",
+        slug: "Peter_P._Flores",
+        // Pleasanton, TX — incumbent SD-24 senator
+        home: { lat: 28.9647, lng: -98.4752, city: "Pleasanton, TX" },
+        policies: [
+          "Border security & law enforcement funding",
+          "Water rights & rural infrastructure",
+          "Property tax relief for landowners",
+          "Oil & gas industry protections",
+          "Veterans & military family support",
+        ],
+      },
+      {
+        name: "Joe P. Herrera",
+        party: "D",
+        status: "nominee",
+        slug: "Joe_P._Herrera",
+        // Natalia, TX (Medina County) — food industry professional
+        home: { lat: 29.1910, lng: -98.8620, city: "Natalia, TX" },
+        policies: [
+          "Expanding rural healthcare & hospital access",
+          "High-speed internet for rural communities",
+          "Public education funding & teacher pay",
+          "Property rights & local control",
+          "Equal pay & LGBTQ+ protections",
+        ],
+      },
+    ],
+  },
+  {
+    // HD-53 (Hill Country / West Texas): Virdell (R, incumbent) won primary; Hartmann (D) won unopposed.
+    office: "TX House of Representatives",
+    office_level: "state",
+    jurisdiction: "Texas",
+    district: "HD-53",
+    candidates: [
+      {
+        name: "Wesley Virdell",
+        party: "R",
+        status: "nominee",
+        slug: "Wesley_Virdell",
+        // Brady, TX (McCulloch County) — Air Force veteran
+        home: { lat: 31.1343, lng: -99.3348, city: "Brady, TX" },
+        policies: [
+          "Property tax reduction for rural landowners",
+          "Water rights & conservation for Hill Country",
+          "Supporting agriculture & ranching industries",
+          "Border security & public safety",
+          "Veterans services & rural economic development",
+        ],
+      },
+      {
+        name: "Kathryn Hartmann",
+        party: "D",
+        status: "nominee",
+        slug: "Kathryn_Hartmann",
+        // Kerrville, TX — HD-53 Democrat
+        home: { lat: 30.0474, lng: -99.1403, city: "Kerrville, TX" },
+        policies: [
+          "Expanding rural healthcare & mental health services",
+          "Public education investment & teacher pay",
+          "Clean water & environmental protection",
+          "Broadband access for rural communities",
+          "Reproductive rights & healthcare access",
+        ],
+      },
+    ],
+  },
   {
     // HD-121 (North-Central San Antonio): LaHood (R, incumbent) defeated McArthur in primary;
     // Zack Dunn (D) won unopposed. National Dems targeting this seat.
@@ -675,6 +794,31 @@ const RACES = [
           "Opposing taxpayer-funded progressive initiatives",
           "Property rights & limited government",
           "Conservative family values legislation",
+        ],
+      },
+    ],
+  },
+  {
+    // Burnet County Judge: Bryan Wilson (R) won narrow Republican primary (52.3% vs Trevino 47.7%).
+    // No Democratic challenger — Wilson runs effectively unopposed in the general.
+    office: "Burnet County Judge",
+    office_level: "local",
+    jurisdiction: "Burnet",
+    district: null,
+    candidates: [
+      {
+        name: "Bryan Wilson",
+        party: "R",
+        status: "nominee",
+        slug: "Bryan_Wilson_(Burnet_County_Judge,_Texas,_candidate_2026)",
+        // Burnet, TX — acting county judge since March 2025
+        home: { lat: 30.7591, lng: -98.2326, city: "Burnet, TX" },
+        policies: [
+          "Fiscal responsibility for Burnet County budget",
+          "Public safety & rural law enforcement",
+          "Infrastructure & road maintenance",
+          "Water rights & Hill Country conservation",
+          "Economic development in Burnet County",
         ],
       },
     ],

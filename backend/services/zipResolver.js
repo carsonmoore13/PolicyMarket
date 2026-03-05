@@ -45,7 +45,11 @@ const TEXAS_ZIP_DISTRICT_MAP = {
   // ── San Antonio (Bexar County) ──────────────────────────────────────────
   // 78248: north SA (Inwood/Deerfield/Stone Oak corridor)
   // TX-20 covers ~78% of ZIP; SD-25 (Donna Campbell, not up until 2028); HD-121 (LaHood)
-  78248: { congressional: "TX-20", state_senate: "SD-25", state_house: "HD-121", city_council: "San Antonio District 10", locality: "San Antonio" }
+  78248: { congressional: "TX-20", state_senate: "SD-25", state_house: "HD-121", city_council: "San Antonio District 10", locality: "San Antonio" },
+
+  // ── Burnet County (Hill Country) ───────────────────────────────────────
+  // 78611: Burnet, TX — TX-25; SD-24 (Pete Flores, UP in 2026); HD-53 (Virdell)
+  78611: { congressional: "TX-25", state_senate: "SD-24", state_house: "HD-53", city_council: null, locality: "Burnet" }
 };
 
 export function resolveDistricts(lat, lng, stateAbbr, zip) {

@@ -38,6 +38,8 @@ export default function App() {
     const data = await submitZip(z);
     if (data) {
       setShowZipModal(false);
+      setLevel("federal");
+      setSelectedCandidate(null);
     }
     return data;
   };
