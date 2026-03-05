@@ -1,27 +1,12 @@
 import express from "express";
-import axios from "axios";
 import { getCandidatesCollection, getApiCacheCollection } from "../db.js";
-import { resolveDistricts } from "../services/zipResolver.js";
+import { resolveAddress, normalizeAddressKey } from "../services/addressResolver.js";
 import { filterCandidates, isAllowedCandidate } from "../services/candidateFilter.js";
-import { getCandidatesByZip } from "../geo/zip_to_district.js";
+import { triggerDiscovery, isDiscovering } from "../services/raceDiscovery.js";
 
 const router = express.Router();
 
-async function fetchZipInfo(zip) {
-  const url = `https://api.zippopotam.us/us/${zip}`;
-  const res = await axios.get(url, { timeout: 10000 });
-  const place = res.data.places && res.data.places[0];
-  if (!place) throw new Error("ZIP data missing places");
-  return {
-    zip: res.data["post code"],
-    city: place["place name"],
-    state: place["state"],
-    state_abbreviation: place["state abbreviation"],
-    lat: parseFloat(place.latitude),
-    lng: parseFloat(place.longitude),
-  };
-}
-
+// GET /api/candidates/all  — returns the full unfiltered candidate set
 router.get("/all", async (_req, res) => {
   try {
     const coll = getCandidatesCollection();
@@ -34,122 +19,158 @@ router.get("/all", async (_req, res) => {
   }
 });
 
+/**
+ * GET /api/candidates
+ *
+ * Required query params:
+ *   street, city, state
+ *
+ * Optional:
+ *   zip    — improves geocoding accuracy
+ *   level  — "federal" | "state" | "local"
+ *             Omit to get the rich payload (location + districts + all candidates).
+ *             Include to get a flat filtered array for a single sidebar tab.
+ *
+ * DISCOVERY FLOW FOR NEW DISTRICTS:
+ *   When candidates is empty for a new state, `triggerDiscovery` fires in the
+ *   background to scrape Ballotpedia for the missing races. The response
+ *   includes `discovering: true` so the frontend can show a "Loading…" message
+ *   and re-fetch after ~30 seconds. The result is NOT cached until candidates
+ *   are present so the next request gets the populated data.
+ */
 router.get("/", async (req, res) => {
   try {
-    const { zip, level } = req.query;
+    const { street, city, state, zip, level } = req.query;
 
-    // New behavior: if only zip is provided, return rich zip-based payload
-    if (zip && !level) {
-      if (!/^\d{5}$/.test(zip)) {
+    if (!street || !city || !state) {
+      return res.status(400).json({
+        error: "Please provide street, city, and state query parameters.",
+      });
+    }
+
+    // Resolve address → lat/lng + districts (Census + Google Civic, cached).
+    let resolved;
+    try {
+      resolved = await resolveAddress({ street, city, state, zip });
+    } catch (err) {
+      return res.status(404).json({ error: err.message });
+    }
+
+    const { lat, lng, districts } = resolved;
+    const voterState = resolved.state || state; // 2-letter abbreviation
+    const returnedCity = resolved.city || city;
+    const returnedState = resolved.state || state;
+
+    const cacheKey = normalizeAddressKey({ street, city, state });
+
+    // ── Level-filtered path (sidebar tab re-fetch) ─────────────────────────
+    if (level) {
+      const lvl = level.toLowerCase();
+      if (!["federal", "state", "local"].includes(lvl)) {
         return res
           .status(400)
-          .json({ error: "Please provide a valid 5-digit zip parameter." });
+          .json({ error: "level must be one of federal, state, local" });
       }
 
-      const apiCache = getApiCacheCollection();
-      const cached = await apiCache.findOne({ zip });
-      if (cached?.response) {
-        return res.json(cached.response);
+      const coll = getCandidatesCollection();
+      const all = await coll.find({}).toArray();
+      const filtered = filterCandidates(all, districts, lvl, voterState);
+
+      // Trigger discovery in background if this tab is empty
+      const needsDiscovery = filtered.length === 0;
+      if (needsDiscovery) {
+        triggerDiscovery(districts, voterState, all);
       }
 
-      const { districts, candidates } = await getCandidatesByZip(zip);
-
-      if (!districts || (!districts.congressional_district && !districts.state_house_district)) {
-        return res.status(400).json({
-          error: "Unable to resolve districts for this ZIP code.",
-        });
-      }
-
-      const info = await fetchZipInfo(zip);
-
-      const payload = {
-        zip,
-        location: {
-          city: info.city,
-          county: districts.county || null,
-          lat: info.lat,
-          lng: info.lng,
-        },
-        districts: {
-          congressional: districts.congressional_district,
-          state_senate: districts.state_senate_district,
-          state_house: districts.state_house_district,
-        },
-        candidates: candidates.map((c) => ({
-          name: c.name,
-          office: c.office,
-          office_level: c.office_level,
-          party: c.party,
-          district: c.district,
-          photo: c.photo || null,
-          geo: c.geo || null,
-        })),
-      };
-
-      if (!payload.candidates.length) {
-        payload.message = "No 2026 candidates found for this zip code yet";
-      }
-
-      await apiCache.updateOne(
-        { zip },
-        { $set: { zip, response: payload, cached_at: new Date() } },
-        { upsert: true },
-      );
-
-      return res.json(payload);
+      // Return structured response so the frontend can show a "discovering" banner
+      return res.json({
+        candidates: filtered,
+        discovering: needsDiscovery && isDiscovering(voterState, districts),
+      });
     }
 
-    // Existing behavior: zip + level -> filtered list for current view
-    const lvl = (level || "federal").toLowerCase();
-    if (!zip || !/^\d{5}$/.test(zip)) {
-      return res
-        .status(400)
-        .json({ error: "Please provide a valid 5-digit zip parameter." });
-    }
-    if (!["federal", "state", "local"].includes(lvl)) {
-      return res
-        .status(400)
-        .json({ error: "level must be one of federal, state, local" });
+    // ── Rich payload path (initial address submission) ─────────────────────
+    const apiCache = getApiCacheCollection();
+    const cached = await apiCache.findOne({ address_key: cacheKey });
+    if (cached?.response) {
+      return res.json(cached.response);
     }
 
-    const info = await fetchZipInfo(zip);
-    const districts = resolveDistricts(
-      info.lat,
-      info.lng,
-      info.state_abbreviation,
-      zip,
-    );
-
+    // Fetch all candidates and filter for each level.
     const coll = getCandidatesCollection();
     const all = await coll.find({}).toArray();
-    const filtered = filterCandidates(all, districts, lvl);
-    return res.json(filtered);
+
+    const federal = filterCandidates(all, districts, "federal", voterState);
+    const state_candidates = filterCandidates(all, districts, "state", voterState);
+    const local = filterCandidates(all, districts, "local", voterState);
+    const candidates = [...federal, ...state_candidates, ...local];
+
+    if (!districts.congressional && !districts.state_house) {
+      return res.status(400).json({
+        error:
+          "Unable to resolve districts for this address. Please check the address and try again.",
+      });
+    }
+
+    // If no candidates found for this state+districts, trigger background
+    // discovery and let the client know to retry.
+    const discovering = !candidates.length && !isDiscovering(voterState, districts);
+    if (!candidates.length) {
+      triggerDiscovery(districts, voterState, all);
+    }
+
+    const payload = {
+      address: { street, city: returnedCity, state: returnedState, zip: zip || null },
+      location: {
+        city: returnedCity,
+        county: resolved.county || null,
+        lat,
+        lng,
+      },
+      districts: {
+        congressional: districts.congressional,
+        state_senate: districts.state_senate,
+        state_house: districts.state_house,
+      },
+      candidates: candidates.map((c) => ({
+        name: c.name,
+        office: c.office,
+        office_level: c.office_level,
+        party: c.party,
+        district: c.district,
+        photo: c.photo || null,
+        geo: c.geo || null,
+        policies: c.policies || [],
+      })),
+    };
+
+    if (!payload.candidates.length) {
+      payload.message = discovering
+        ? "Fetching candidate data for your area — please try again in about 30 seconds."
+        : "No 2026 candidates found for this address yet.";
+      payload.discovering = discovering || isDiscovering(voterState, districts);
+    }
+
+    // Only cache when we have candidates so subsequent requests see fresh data.
+    if (payload.candidates.length > 0) {
+      await apiCache.updateOne(
+        { address_key: cacheKey },
+        {
+          $set: {
+            address_key: cacheKey,
+            response: payload,
+            cached_at: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+    }
+
+    return res.json(payload);
   } catch (err) {
     console.error("Candidate lookup failed", err.message);
     return res.status(500).json({ error: "Failed to fetch candidates." });
   }
 });
 
-/**
- * FRONTEND CONSUMPTION NOTES
- *
- * - Sidebar candidate cards:
- *   - Call GET /api/candidates?zip=XXXXX (without level) once the user enters a ZIP.
- *   - Use response.candidates[*].photo.url as <img src>. Attach an onError handler to
- *     fall back to rendering response.candidates[*].photo.fallback_initials in a styled
- *     circle avatar if the image fails to load.
- *
- * - Map markers:
- *   - Use response.candidates[*].geo.lat/lng for marker positions.
- *   - If photo.url is present, build a custom Leaflet divIcon that includes the photo.
- *   - If photo.url is null or the image fails, render a colored circle with the
- *     fallback_initials text overlaid, matching the candidate’s party color.
- *
- * - Verified badge:
- *   - If response.candidates[*].photo.verified === true, display a small checkmark
- *     badge on the candidate’s photo (both in the sidebar card and on the map marker).
- *   - Optional tooltip: "Official verified headshot".
- */
-
 export default router;
-

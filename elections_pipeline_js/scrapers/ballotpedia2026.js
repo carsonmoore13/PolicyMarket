@@ -57,9 +57,9 @@ async function scrapeBallotpediaPhoto(slug) {
   return { photo_url, ballotpedia_url: url };
 }
 
-function makeGeo(lat, lng) {
+function makeGeo(lat, lng, jurisdictionName = "Texas") {
   return {
-    jurisdiction_name: "Texas",
+    jurisdiction_name: jurisdictionName,
     lat,
     lng,
     geo_type: "home_city",
@@ -870,17 +870,19 @@ export async function fetchPostPrimary2026Candidates() {
       if (cd.photo_override) photo_url = cd.photo_override;
 
       const officeLabel = race.office + (race.district ? ` ${race.district}` : "");
+      const stateAbbr = race.state || "TX";
 
       const candidate = {
         name: cd.name,
         office: officeLabel,
         office_level: race.office_level,
         jurisdiction: race.jurisdiction,
+        state: stateAbbr,
         district: race.district,
         party: cd.party,
         incumbent: null,
         filing_date: null,
-        geo: makeGeo(cd.home.lat, cd.home.lng),
+        geo: makeGeo(cd.home.lat, cd.home.lng, race.jurisdiction || "Texas"),
         home_city: cd.home.city,
         policies: cd.policies || [],
         photo: {
@@ -891,7 +893,7 @@ export async function fetchPostPrimary2026Candidates() {
           fallback_initials: initials(cd.name),
         },
         zip_codes: [],
-        district_zip_map: { state: "TX", district: race.district, zip_codes: [] },
+        district_zip_map: { state: stateAbbr, district: race.district, zip_codes: [] },
         source_url: ballotpedia_url,
         source_name: "Ballotpedia",
         last_verified: now,

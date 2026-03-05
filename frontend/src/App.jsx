@@ -1,43 +1,43 @@
 import { useState } from "react";
 import AppLayout from "./components/AppLayout.jsx";
-import ZipCodeModal from "./components/ZipCodeModal.jsx";
+import AddressModal from "./components/AddressModal.jsx";
 import CandidateDetailPanel from "./components/CandidateDetailPanel.jsx";
-import { useZipLookup } from "./hooks/useZipLookup.js";
+import { useAddressLookup } from "./hooks/useAddressLookup.js";
 import { useCandidates } from "./hooks/useCandidates.js";
 import { useCandidateTotals } from "./hooks/useCandidateTotals.js";
 
 export default function App() {
   const {
-    zip,
-    setZip,
-    zipData,
-    loading: zipLoading,
-    error: zipError,
-    submitZip,
-  } = useZipLookup();
+    address,
+    addressData,
+    loading: addressLoading,
+    error: addressError,
+    submitAddress,
+  } = useAddressLookup();
+
   const [level, setLevel] = useState("federal");
-  const [showZipModal, setShowZipModal] = useState(!zipData);
+  const [showAddressModal, setShowAddressModal] = useState(!addressData);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
 
   const {
     candidates,
     loading: candidatesLoading,
     error: candidatesError,
-  } = useCandidates(zip, level);
+    discovering: candidatesDiscovering,
+  } = useCandidates(address, level);
 
   const { totals: totalCounts } = useCandidateTotals();
 
   const counts = {
-    federal:
-      level === "federal" ? candidates.length : undefined,
+    federal: level === "federal" ? candidates.length : undefined,
     state: level === "state" ? candidates.length : undefined,
     local: level === "local" ? candidates.length : undefined,
   };
 
-  const handleZipSubmit = async (z) => {
-    const data = await submitZip(z);
+  const handleAddressSubmit = async (addr) => {
+    const data = await submitAddress(addr);
     if (data) {
-      setShowZipModal(false);
+      setShowAddressModal(false);
       setLevel("federal");
       setSelectedCandidate(null);
     }
@@ -64,9 +64,9 @@ export default function App() {
     <>
       <div className="texture-overlay" />
       <AppLayout
-        zipData={zipData}
-        zip={zip}
-        onChangeZipClick={() => setShowZipModal(true)}
+        addressData={addressData}
+        address={address}
+        onChangeAddressClick={() => setShowAddressModal(true)}
         level={level}
         onLevelChange={handleLevelChange}
         levelCounts={counts}
@@ -74,16 +74,17 @@ export default function App() {
         candidates={candidates}
         candidatesLoading={candidatesLoading}
         candidatesError={candidatesError}
+        candidatesDiscovering={candidatesDiscovering}
         onSelectCandidate={handleCandidateSelect}
         selectedCandidate={selectedCandidate}
         onLevelChangeFromMap={handleMapLevelChange}
       />
-      <ZipCodeModal
-        open={showZipModal}
-        onSubmit={handleZipSubmit}
-        loading={zipLoading}
-        error={zipError}
-        initialZip={zip}
+      <AddressModal
+        open={showAddressModal}
+        onSubmit={handleAddressSubmit}
+        loading={addressLoading}
+        error={addressError}
+        initialAddress={address}
       />
       <CandidateDetailPanel
         candidate={selectedCandidate}
@@ -92,4 +93,3 @@ export default function App() {
     </>
   );
 }
-

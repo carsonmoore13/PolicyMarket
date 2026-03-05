@@ -23,9 +23,9 @@ function getPolicies(candidate) {
 }
 
 export default function AppLayout({
-  zipData,
-  zip,
-  onChangeZipClick,
+  addressData,
+  address,
+  onChangeAddressClick,
   level,
   onLevelChange,
   levelCounts,
@@ -33,18 +33,21 @@ export default function AppLayout({
   candidates,
   candidatesLoading,
   candidatesError,
+  candidatesDiscovering,
   onSelectCandidate,
   selectedCandidate,
   onLevelChangeFromMap,
 }) {
   const [search, setSearch] = useState("");
 
+  // Map center derived from geocoded address coordinates.
   const center = useMemo(() => {
-    if (zipData && typeof zipData.lng === "number" && typeof zipData.lat === "number") {
-      return [zipData.lng, zipData.lat];
+    const loc = addressData?.location;
+    if (loc && typeof loc.lng === "number" && typeof loc.lat === "number") {
+      return [loc.lng, loc.lat];
     }
     return null;
-  }, [zipData?.lng, zipData?.lat]);
+  }, [addressData?.location?.lng, addressData?.location?.lat]);
 
   const filteredCandidates = useMemo(() => {
     const needle = search.toLowerCase().trim();
@@ -57,8 +60,13 @@ export default function AppLayout({
     });
   }, [candidates, search]);
 
-  const listHeaderLabel = zipData
-    ? `Active campaigns • ${zipData.city || ""} ${zipData.state || ""}`.trim()
+  // Sidebar header: show city + state from the geocoded result.
+  const locationLabel = addressData?.location?.city
+    ? `${addressData.location.city}${addressData.location?.county ? `, ${addressData.location.county}` : ""}`
+    : address?.city || "";
+
+  const listHeaderLabel = locationLabel
+    ? `Active campaigns • ${locationLabel}`.trim()
     : "Active campaigns";
 
   const levelLabel =
@@ -125,7 +133,6 @@ export default function AppLayout({
 
         <div className="list-header">
           {listHeaderLabel} • {levelLabel}
-          {zip && zipData ? ` · ${zip}` : ""}
           {typeof totalForCurrentLevel === "number" && totalForCurrentLevel > 0 && (
             <span className="ml-1">
               {" "}
@@ -145,8 +152,20 @@ export default function AppLayout({
               {candidatesError}
             </div>
           ) : filteredCandidates.length === 0 ? (
-            <div className="flex h-full items-center justify-center px-4 text-xs text-gray-500">
-              No candidates to display.
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              {candidatesDiscovering ? (
+                <>
+                  <LoadingSpinner label="" />
+                  <p className="text-xs text-blue-400 font-medium">
+                    Fetching candidate data for your area…
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    This may take up to 30 seconds for new regions. Try switching tabs or refreshing.
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-gray-500">No candidates to display.</p>
+              )}
             </div>
           ) : (
             filteredCandidates.map((c) => {
@@ -162,7 +181,6 @@ export default function AppLayout({
               else if (partyCode === "I" || partyCode === "IND") partyLabel = "Independent";
               else if (partyCode === "OTH") partyLabel = "Other";
               else if (partyCode) partyLabel = partyCode;
-              // Always show some label, even if the data didn't include a party.
               if (!partyLabel) partyLabel = "Unknown";
               return (
                 <button
@@ -242,7 +260,7 @@ export default function AppLayout({
           <button
             type="button"
             className="primary-btn"
-            onClick={onChangeZipClick}
+            onClick={onChangeAddressClick}
           >
             Change Region / Register to Vote
           </button>
@@ -262,4 +280,3 @@ export default function AppLayout({
     </div>
   );
 }
-
