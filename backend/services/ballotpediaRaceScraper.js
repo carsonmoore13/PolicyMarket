@@ -252,7 +252,22 @@ function isPersonLink(href, name) {
 }
 
 /**
- * Parse a Ballotpedia election overview page and return nominees.
+ * Parse a Ballotpedia election page and return ONLY confirmed/active nominees.
+ *
+ * Strategy:
+ *  1. Trim the DOM at the "Election history" h2 — everything after that is for
+ *     past election cycles and must not contaminate results.
+ *  2. Iterate over `div.votebox` elements in document order and classify each by
+ *     its `h5.votebox-header-election-type` title:
+ *       INCLUDE — "General election"  (confirmed nominees)
+ *       INCLUDE — "runoff"            (active runoff; winner TBD)
+ *       EXCLUDE — "primary" w/o "runoff" (completed primary — losers live here)
+ *       EXCLUDE — "convention", "Libertarian", etc. (minor-party conventions; not primary races)
+ *  3. Party detection per row (in priority order):
+ *       a. `image-candidate-thumbnail-wrapper {Party}` class on the photo cell
+ *       b. `(R)` / `(D)` literal text in the candidate cell
+ *       c. `race_header {party}` class on the votebox header (all rows share party)
+ *
  * Returns array of { name, slug, party }.
  */
 function parseElectionPageHtml(html) {
@@ -260,95 +275,79 @@ function parseElectionPageHtml(html) {
   const nominees = [];
   const seen = new Set();
 
-  // ── Strategy 1: Find "General election" heading, then parse tables after it ─
-  let genElSection = null;
-  $("h2, h3, h4").each((_, el) => {
-    if (/General election/i.test($(el).text())) {
-      genElSection = $(el);
-      return false; // break
-    }
-  });
+  // ── Step 1: Remove "Election history" and everything after it ────────────────
+  const $histH2 = $("h2").filter((_, el) => /Election history/i.test($(el).text())).first();
+  if ($histH2.length) {
+    $histH2.nextAll().remove();
+    $histH2.remove();
+  }
 
-  /**
-   * Scan through a Cheerio collection for wikitable rows that contain
-   * party information adjacent to candidate links.
-   */
-  function scanTables($scope) {
-    $scope.find("table").each((_, table) => {
-      const $tbl = $(table);
-      // Skip large navigation tables (>30 rows) — those list races/districts, not candidates
-      if ($tbl.find("tr").length > 30) return;
-      let currentParty = null;
+  // ── Step 2: Walk votebox containers ──────────────────────────────────────────
+  $("div.votebox-scroll-container").each((_, container) => {
+    const $vb = $(container).find("div.votebox").first();
+    if (!$vb.length) return;
 
-      $tbl.find("tr").each((_, row) => {
-        const $row = $(row);
-        const rowText = $row.text();
+    const title    = $vb.find("h5.votebox-header-election-type").text().trim();
+    const isGeneral = /general election/i.test(title);
+    const isRunoff  = /runoff/i.test(title);
+    const isPrimary = /primary/i.test(title) && !isRunoff;
 
-        // Detect party from row text or background colors
-        if (/Democrat(?:ic)?/i.test(rowText)) currentParty = "D";
-        else if (/Republican/i.test(rowText)) currentParty = "R";
+    if (isPrimary) return;               // completed primary — skip
+    if (!isGeneral && !isRunoff) return; // convention / other — skip
 
-        // Also check for Ballotpedia party-color td/th backgrounds
-        const bgCell = $row.find("[style*='background'], [class*='blue'], [class*='red']").first();
-        if (bgCell.length) {
-          const style = bgCell.attr("style") || "";
-          const cls = bgCell.attr("class") || "";
-          if (/#[02][04][08][0-9a-f]/i.test(style) || /blue/i.test(cls)) currentParty = "D";
-          else if (/#[cC][cC][02][02][02][02]/i.test(style) || /red/i.test(cls)) currentParty = "R";
-        }
+    // Party fallback from the votebox header class itself (used when all candidates
+    // in the box share a single party, e.g. a Republican runoff)
+    const headerClass  = $vb.find("div.race_header").attr("class") || "";
+    const vbPartyClass = /\brepublican\b/i.test(headerClass) ? "R"
+                       : /\bdemocrat(ic)?\b/i.test(headerClass) ? "D"
+                       : null;
 
-        if (!currentParty) return; // skip rows with no party context
+    $vb.find("tr.results_row").each((_, row) => {
+      const $row  = $(row);
+      const $cell = $row.find("td.votebox-results-cell--text");
+      if (!$cell.length) return;
 
-        // Find candidate links in this row
-        $row.find("a[href]").each((_, link) => {
-          const href = $(link).attr("href") || "";
-          const name = $(link).text().trim();
-          if (!isPersonLink(href, name)) return;
-          // Skip names containing digits (e.g. "Texas' 2nd", "District 37")
-          if (/\d/.test(name)) return;
-          const slug = href.slice(1);
-          if (seen.has(slug)) return;
-          seen.add(slug);
-          nominees.push({ name, slug, party: currentParty });
-        });
+      // ── Party detection ────────────────────────────────────────────────────
+      // a) thumbnail wrapper class (most reliable; present in all voteboxes)
+      const thumbClass = $row.find("div[class*='image-candidate-thumbnail-wrapper']").attr("class") || "";
+      let party = /\brepublican\b/i.test(thumbClass) ? "R"
+                : /\bdemocrat(ic)?\b/i.test(thumbClass) ? "D"
+                : null;
+
+      // b) explicit "(R)" / "(D)" in cell text
+      if (!party) {
+        const cellText = $cell.text().trim();
+        const m = cellText.match(/\(([RD])\)/);
+        if (m) party = m[1];
+      }
+
+      // c) fallback to the votebox-level party
+      if (!party) party = vbPartyClass;
+
+      if (!party) return; // truly unknown party — skip
+
+      // ── Candidate link ─────────────────────────────────────────────────────
+      $cell.find("a[href]").first().each((_, link) => {
+        const href = $(link).attr("href") || "";
+        const name = $(link).text().trim();
+        let slug = "";
+        if (href.startsWith("/")) {
+          slug = decodeURIComponent(href.slice(1).split("#")[0]);
+        } else if (href.includes("ballotpedia.org/")) {
+          const raw = href.split("ballotpedia.org/")[1];
+          if (!raw) return;
+          slug = decodeURIComponent(raw.split("#")[0]);
+        } else return;
+
+        if (!slug || slug.length < 5 || slug.length > 80) return;
+        if (/^Ballotpedia|^Wikipedia|election|primary|district/i.test(slug)) return;
+        if (!isPersonName(name) || /\d/.test(name)) return;
+        if (seen.has(slug)) return;
+        seen.add(slug);
+        nominees.push({ name, slug, party });
       });
     });
-  }
-
-  if (genElSection) {
-    // Collect everything between this heading and the next h2
-    const $between = genElSection.nextUntil("h2");
-    scanTables($between);
-  }
-
-  // ── Strategy 2: If Strategy 1 found nothing, scan all wikitables ────────────
-  if (!nominees.length) {
-    scanTables($("body"));
-  }
-
-  // ── Strategy 3: Broadened link scan with party proximity detection ───────────
-  if (!nominees.length) {
-    $("a[href]").each((_, link) => {
-      const href = $(link).attr("href") || "";
-      const name = $(link).text().trim();
-      if (!isPersonLink(href, name)) return;
-      const slug = href.slice(1);
-      if (seen.has(slug)) return;
-
-      // Look at parent elements (up to 3 levels) for party context
-      let $el = $(link);
-      let party = null;
-      for (let i = 0; i < 3 && !party; i++) {
-        $el = $el.parent();
-        const txt = $el.text();
-        if (/Democrat(?:ic)?/i.test(txt)) party = "D";
-        else if (/Republican/i.test(txt)) party = "R";
-      }
-      if (!party) return;
-      seen.add(slug);
-      nominees.push({ name, slug, party });
-    });
-  }
+  });
 
   return nominees;
 }

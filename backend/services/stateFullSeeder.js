@@ -350,6 +350,14 @@ async function fetchHouseDistrictCandidates(state, d, possName) {
   const url = `${BP_BASE}/${possName}_${ord}_Congressional_District_election,_2026`;
   const html = await fetchFast(url);
   if (!html) return [];
+
+  // parseElectionPageHtml now exclusively reads from div.votebox containers,
+  // returning only general election nominees and active runoff candidates.
+  // It never returns completed-primary losers.
+  const nominees = parseElectionPageHtml(html);
+  if (nominees.length > 0) return nominees.slice(0, 4);
+
+  // Fallback: parse primary candidate profiles (pre-primary-results state)
   return parseDistrictPrimaryCandidates(html);
 }
 

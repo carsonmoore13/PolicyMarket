@@ -4,6 +4,35 @@ import { resolveAddress, normalizeAddressKey } from "../services/addressResolver
 import { filterCandidates, isAllowedCandidate } from "../services/candidateFilter.js";
 import { triggerDiscovery, isDiscovering } from "../services/raceDiscovery.js";
 
+/**
+ * Serialize a candidate document into the API response shape.
+ * `image` is a convenience top-level field pointing at the S3 URL (or null).
+ * `photo` retains the full sub-document for richer client-side use
+ * (fallback initials, source label, etc.).
+ */
+function serializeCandidate(c) {
+  const photoUrl = c.photo?.url || null;
+  return {
+    name:         c.name,
+    office:       c.office,
+    office_level: c.office_level,
+    party:        c.party,
+    district:     c.district,
+    // Convenience field — the S3 (or external) image URL, ready to use in <img src>
+    image: photoUrl,
+    photo: c.photo
+      ? {
+          url:               photoUrl,
+          source:            c.photo.source || null,
+          verified:          c.photo.verified || false,
+          fallback_initials: c.photo.fallback_initials || null,
+        }
+      : null,
+    geo:      c.geo      || null,
+    policies: c.policies || [],
+  };
+}
+
 const router = express.Router();
 
 // GET /api/candidates/all  — returns the full unfiltered candidate set
@@ -84,7 +113,7 @@ router.get("/", async (req, res) => {
 
       // Return structured response so the frontend can show a "discovering" banner
       return res.json({
-        candidates: filtered,
+        candidates: filtered.map(serializeCandidate),
         discovering: needsDiscovery && isDiscovering(voterState, districts),
       });
     }
@@ -132,16 +161,7 @@ router.get("/", async (req, res) => {
         state_senate: districts.state_senate,
         state_house: districts.state_house,
       },
-      candidates: candidates.map((c) => ({
-        name: c.name,
-        office: c.office,
-        office_level: c.office_level,
-        party: c.party,
-        district: c.district,
-        photo: c.photo || null,
-        geo: c.geo || null,
-        policies: c.policies || [],
-      })),
+      candidates: candidates.map(serializeCandidate),
     };
 
     if (!payload.candidates.length) {

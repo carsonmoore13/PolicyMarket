@@ -1,0 +1,6 @@
+feat: Migrate candidate headshots to AWS S3 storage
+
+- Added candidateImageService.js and s3Service.js for handling S3 uploads
+- Updated candidates.js route and stateFullSeeder.js to support the new photo payload shape
+- Included node scripts to fetch missing headshots and migrate existing candidates
+- Cleaned up garbled entries in .gitignore
