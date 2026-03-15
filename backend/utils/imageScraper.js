@@ -32,6 +32,17 @@ const httpClient = axios.create({
   },
 });
 
+// Polite delay between Ballotpedia page fetches to avoid rate limiting.
+const BP_DELAY_MS = 1500;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let _lastBpFetch = 0;
+async function bpRateLimit() {
+  const now = Date.now();
+  const wait = BP_DELAY_MS - (now - _lastBpFetch);
+  if (wait > 0) await sleep(wait);
+  _lastBpFetch = Date.now();
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -49,6 +60,11 @@ export async function downloadImageBuffer(url) {
     const ct = res.headers["content-type"] || "";
     if (!ct.startsWith("image/")) {
       console.warn(`[ImageScraper] Non-image content-type "${ct}", skipping: ${url}`);
+      return null;
+    }
+    // Reject SVG and other vector formats — they are diagrams/logos, not headshots.
+    if (ct.includes("svg") || url.endsWith(".svg")) {
+      console.warn(`[ImageScraper] SVG rejected (not a headshot): ${url}`);
       return null;
     }
     return buf;
@@ -70,6 +86,7 @@ export async function fetchBallotpediaPhotoUrl(slug) {
   if (!slug) return null;
   const pageUrl = `https://ballotpedia.org/${encodeURIComponent(slug).replace(/%20/g, "_")}`;
   try {
+    await bpRateLimit();
     const res = await httpClient.get(pageUrl, { responseType: "text" });
     const $ = cheerio.load(res.data);
 
@@ -80,10 +97,12 @@ export async function fetchBallotpediaPhotoUrl(slug) {
     if (src.startsWith("//")) src = `https:${src}`;
     else if (src && !src.startsWith("http")) src = `https://ballotpedia.org${src}`;
 
-    // Ballotpedia thumbnails end in /100/100/<name>. Upgrade to full size if possible.
-    // e.g.  .../thumbs/100/100/Steve_Toth.jpg  →  .../files/Steve_Toth.jpg
+    // Ballotpedia thumbnails live at .../files/thumbs/W/H/name.jpg on S3.
+    // Strip the /thumbs/W/H segment to get the full-size URL:
+    //   .../files/thumbs/200/300/Dan_Patrick.jpg → .../files/Dan_Patrick.jpg
+    // (The old replacement "/thumbs/…/" → "/files/" produced a double /files/files/ path.)
     if (src.includes("/thumbs/")) {
-      const fullSize = src.replace(/\/thumbs\/\d+\/\d+\//, "/files/");
+      const fullSize = src.replace(/\/thumbs\/\d+\/\d+/, "");
       src = fullSize;
     }
 
@@ -127,9 +146,13 @@ export async function fetchWikipediaPhotoUrl(name) {
 
     if (!imgUrl) return null;
 
-    // Wikipedia thumbnails can be upscaled by removing the /NNNpx- prefix
-    // e.g.  /200px-John_Cornyn.jpg  →  /John_Cornyn.jpg
-    const fullUrl = imgUrl.replace(/\/\d+px-([^/]+)$/, "/$1");
+    // Convert Wikipedia thumbnail URL to the full-res commons URL.
+    // Thumbnail format: .../commons/thumb/e/e4/File.jpg/200px-File.jpg
+    // Full-size format: .../commons/e/e4/File.jpg
+    // The old regex only stripped the px prefix, producing a 404-producing double path.
+    const fullUrl = imgUrl.includes("/thumb/")
+      ? imgUrl.replace(/\/thumb\/(.*?)\/\d+px-[^/]+$/, "/$1")
+      : imgUrl;
     return fullUrl;
   } catch (err) {
     // 404 is expected for candidates without Wikipedia pages — log at debug level

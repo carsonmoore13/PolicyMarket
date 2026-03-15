@@ -424,6 +424,23 @@ export async function fetchCandidateInfo(slug, { skipPhoto = false } = {}) {
  * Convert a Ballotpedia bio paragraph into sidebar policy bullet points.
  * Falls back to party-generic bullets when the bio yields nothing useful.
  */
+// Sentences that are biographical/electoral boilerplate, not policy positions.
+const BIO_BOILERPLATE = [
+  /is a member of/i,
+  /is running for/i,
+  /assumed office/i,
+  /current term ends/i,
+  /on the ballot/i,
+  /general election on/i,
+  /advanced from the/i,
+  /primary on/i,
+  /\bwon the election\b/i,
+  /\btook office\b/i,
+  /\bwas elected\b/i,
+  /\bParty\) is\b/i,
+  /congressional district/i,
+];
+
 export function bioToBullets(bio, party, fallback) {
   const bullets = [];
 
@@ -434,7 +451,12 @@ export function bioToBullets(bio, party, fallback) {
       .split(/(?<=[.!?])\s+(?=[A-Z])/)
       .map((s) => s.replace(/\.$/, "").trim())
       .filter((s) => s.length > 25 && s.length < 220);
-    bullets.push(...sentences.slice(0, 5));
+
+    // Filter out biographical boilerplate — only keep policy-relevant sentences
+    const policyRelevant = sentences.filter(
+      (s) => !BIO_BOILERPLATE.some((pat) => pat.test(s))
+    );
+    bullets.push(...policyRelevant.slice(0, 5));
   }
 
   if (bullets.length === 0) {

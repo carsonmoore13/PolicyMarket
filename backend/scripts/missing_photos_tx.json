@@ -1,0 +1,1646 @@
+{
+  "generated_at": "2026-03-11T00:26:00.393Z",
+  "state": "TX",
+  "missing": [
+    {
+      "_id": "69a9a10ffa48189af26b6dc6",
+      "name": "Clayton Tucker",
+      "party": "D",
+      "office": "Agriculture Commissioner",
+      "district": null,
+      "source_url": "https://ballotpedia.org/Clayton_Tucker"
+    },
+    {
+      "_id": "69a9a10ffa48189af26b6dc9",
+      "name": "Joe P. Herrera",
+      "party": "D",
+      "office": "TX State Senate SD-24",
+      "district": "SD-24",
+      "source_url": "https://ballotpedia.org/Joe_P._Herrera"
+    },
+    {
+      "_id": "69a9a10ffa48189af26b6dce",
+      "name": "Pooja Sethi",
+      "party": "D",
+      "office": "TX House of Representatives HD-47",
+      "district": "HD-47",
+      "source_url": "https://ballotpedia.org/Pooja_Sethi"
+    },
+    {
+      "_id": "69a9a10ffa48189af26b6dcf",
+      "name": "Jennifer Mushtaler",
+      "party": "R",
+      "office": "TX House of Representatives HD-47",
+      "district": "HD-47",
+      "source_url": "https://ballotpedia.org/Jennifer_Mushtaler"
+    },
+    {
+      "_id": "69a9a10ffa48189af26b6dd1",
+      "name": "Kathie Tovo",
+      "party": "D",
+      "office": "TX House of Representatives HD-49",
+      "district": "HD-49",
+      "source_url": "https://ballotpedia.org/Kathie_Tovo"
+    },
+    {
+      "_id": "69a9a10ffa48189af26b6dd3",
+      "name": "Patrick Von Dohlen",
+      "party": "R",
+      "office": "Bexar County Judge",
+      "district": null,
+      "source_url": "https://ballotpedia.org/Patrick_Von_Dohlen"
+    },
+    {
+      "_id": "69a9c909e705f140d3c4d79c",
+      "name": "Julie Dahlberg",
+      "party": "R",
+      "office": "State Senate SD-21",
+      "district": "SD-21",
+      "source_url": "https://ballotpedia.org/Julie_Dahlberg"
+    },
+    {
+      "_id": "69a9c909e705f140d3c4d79f",
+      "name": "Joe P. Herrera",
+      "party": "D",
+      "office": "State Senate SD-24",
+      "district": "SD-24",
+      "source_url": "https://ballotpedia.org/Joe_P._Herrera"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ae",
+      "name": "Lorenzo Johnson",
+      "party": "D",
+      "office": "State House HD-6",
+      "district": "HD-6",
+      "source_url": "https://ballotpedia.org/Lorenzo_Johnson_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7b5",
+      "name": "Rocky Thigpen",
+      "party": "R",
+      "office": "State House HD-9",
+      "district": "HD-9",
+      "source_url": "https://ballotpedia.org/Rocky_Thigpen"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7b6",
+      "name": "Michael Myers",
+      "party": "D",
+      "office": "State House HD-10",
+      "district": "HD-10",
+      "source_url": "https://ballotpedia.org/Michael_Myers_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ba",
+      "name": "Andie Ho",
+      "party": "D",
+      "office": "State House HD-12",
+      "district": "HD-12",
+      "source_url": "https://ballotpedia.org/Andie_Ho"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7bc",
+      "name": "Albert Hunter",
+      "party": "D",
+      "office": "State House HD-13",
+      "district": "HD-13",
+      "source_url": "https://ballotpedia.org/Albert_Hunter"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7be",
+      "name": "Janet Dudding",
+      "party": "D",
+      "office": "State House HD-14",
+      "district": "HD-14",
+      "source_url": "https://ballotpedia.org/Janet_Dudding"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7c0",
+      "name": "Moniqua' Scott",
+      "party": "D",
+      "office": "State House HD-15",
+      "district": "HD-15",
+      "source_url": "https://ballotpedia.org/Moniqua'_Scott"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7c1",
+      "name": "Brad Bailey",
+      "party": "R",
+      "office": "State House HD-15",
+      "district": "HD-15",
+      "source_url": "https://ballotpedia.org/Brad_Bailey_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7c2",
+      "name": "Bobbie Clayton",
+      "party": "D",
+      "office": "State House HD-16",
+      "district": "HD-16",
+      "source_url": "https://ballotpedia.org/Bobbie_Clayton"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7c6",
+      "name": "Valorie Barton",
+      "party": "D",
+      "office": "State House HD-18",
+      "district": "HD-18",
+      "source_url": "https://ballotpedia.org/Valorie_Barton"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ca",
+      "name": "Matthias-Jonah Early",
+      "party": "D",
+      "office": "State House HD-20",
+      "district": "HD-20",
+      "source_url": "https://ballotpedia.org/Matthias-Jonah_Early"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7cd",
+      "name": "Ray Callas",
+      "party": "R",
+      "office": "State House HD-21",
+      "district": "HD-21",
+      "source_url": "https://ballotpedia.org/Ray_Callas"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7cf",
+      "name": "Cheryl Clark",
+      "party": "D",
+      "office": "State House HD-23",
+      "district": "HD-23",
+      "source_url": "https://ballotpedia.org/Cheryl_Clark_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7d1",
+      "name": "Frank Carr",
+      "party": "D",
+      "office": "State House HD-24",
+      "district": "HD-24",
+      "source_url": "https://ballotpedia.org/Frank_Carr"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7d3",
+      "name": "Mike Meadors",
+      "party": "D",
+      "office": "State House HD-25",
+      "district": "HD-25",
+      "source_url": "https://ballotpedia.org/Mike_Meadors"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7d5",
+      "name": "Elizabeth Markowitz",
+      "party": "D",
+      "office": "State House HD-26",
+      "district": "HD-26",
+      "source_url": "https://ballotpedia.org/Elizabeth_Markowitz"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7d8",
+      "name": "Max Alalibo",
+      "party": "R",
+      "office": "State House HD-27",
+      "district": "HD-27",
+      "source_url": "https://ballotpedia.org/Max_Alalibo"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7e1",
+      "name": "Gabriel Marroquin",
+      "party": "D",
+      "office": "State House HD-32",
+      "district": "HD-32",
+      "source_url": "https://ballotpedia.org/Gabriel_Marroquin"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7e5",
+      "name": "Stephanie Saenz",
+      "party": "D",
+      "office": "State House HD-34",
+      "district": "HD-34",
+      "source_url": "https://ballotpedia.org/Stephanie_Saenz"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7e8",
+      "name": "Oscar Rosa",
+      "party": "R",
+      "office": "State House HD-35",
+      "district": "HD-35",
+      "source_url": "https://ballotpedia.org/Oscar_Rosa"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7e9",
+      "name": "Sergio Munoz Jr.",
+      "party": "D",
+      "office": "State House HD-36",
+      "district": "HD-36",
+      "source_url": "https://ballotpedia.org/Sergio_Munoz_Jr."
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ea",
+      "name": "Janie Lopez",
+      "party": "R",
+      "office": "State House HD-37",
+      "district": "HD-37",
+      "source_url": "https://ballotpedia.org/Janie_Lopez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7eb",
+      "name": "Erin Gamez",
+      "party": "D",
+      "office": "State House HD-38",
+      "district": "HD-38",
+      "source_url": "https://ballotpedia.org/Erin_Gamez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ec",
+      "name": "Laura Cisneros",
+      "party": "R",
+      "office": "State House HD-38",
+      "district": "HD-38",
+      "source_url": "https://ballotpedia.org/Laura_Cisneros"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ed",
+      "name": "Armando Martinez",
+      "party": "D",
+      "office": "State House HD-39",
+      "district": "HD-39",
+      "source_url": "https://ballotpedia.org/Armando_Martinez_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ef",
+      "name": "Richard Raymond",
+      "party": "D",
+      "office": "State House HD-42",
+      "district": "HD-42",
+      "source_url": "https://ballotpedia.org/Richard_Raymond"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f0",
+      "name": "Teresa Johnson-Hernandez",
+      "party": "R",
+      "office": "State House HD-42",
+      "district": "HD-42",
+      "source_url": "https://ballotpedia.org/Teresa_Johnson-Hernandez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f1",
+      "name": "Jeffrey Jackson",
+      "party": "D",
+      "office": "State House HD-43",
+      "district": "HD-43",
+      "source_url": "https://ballotpedia.org/Jeffrey_Jackson_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f2",
+      "name": "J.M. Lozano",
+      "party": "R",
+      "office": "State House HD-43",
+      "district": "HD-43",
+      "source_url": "https://ballotpedia.org/J.M._Lozano"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f3",
+      "name": "Eric Norman",
+      "party": "D",
+      "office": "State House HD-44",
+      "district": "HD-44",
+      "source_url": "https://ballotpedia.org/Eric_Norman"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f4",
+      "name": "Alan Schoolcraft",
+      "party": "R",
+      "office": "State House HD-44",
+      "district": "HD-44",
+      "source_url": "https://ballotpedia.org/Alan_Schoolcraft"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f5",
+      "name": "Erin Zwiener",
+      "party": "D",
+      "office": "State House HD-45",
+      "district": "HD-45",
+      "source_url": "https://ballotpedia.org/Erin_Zwiener"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7f6",
+      "name": "Tennyson Moreno",
+      "party": "R",
+      "office": "State House HD-45",
+      "district": "HD-45",
+      "source_url": "https://ballotpedia.org/Tennyson_Moreno"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7fb",
+      "name": "Anthony Gupta",
+      "party": "R",
+      "office": "State House HD-48",
+      "district": "HD-48",
+      "source_url": "https://ballotpedia.org/Anthony_Gupta"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7fc",
+      "name": "Howard Olsen IV",
+      "party": "R",
+      "office": "State House HD-50",
+      "district": "HD-50",
+      "source_url": "https://ballotpedia.org/Howard_Olsen_IV"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7fd",
+      "name": "Maria Luisa Flores",
+      "party": "D",
+      "office": "State House HD-51",
+      "district": "HD-51",
+      "source_url": "https://ballotpedia.org/Lulu_Flores"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d7ff",
+      "name": "Chris Jimenez",
+      "party": "D",
+      "office": "State House HD-52",
+      "district": "HD-52",
+      "source_url": "https://ballotpedia.org/Chris_Jimenez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d800",
+      "name": "Caroline Harris",
+      "party": "R",
+      "office": "State House HD-52",
+      "district": "HD-52",
+      "source_url": "https://ballotpedia.org/Caroline_Harris"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d801",
+      "name": "Kathryn Hartmann",
+      "party": "D",
+      "office": "State House HD-53",
+      "district": "HD-53",
+      "source_url": "https://ballotpedia.org/Kathryn_Hartmann"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d803",
+      "name": "Dawn Richardson",
+      "party": "D",
+      "office": "State House HD-54",
+      "district": "HD-54",
+      "source_url": "https://ballotpedia.org/Dawn_Richardson"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d805",
+      "name": "Amelia Rabroker",
+      "party": "D",
+      "office": "State House HD-55",
+      "district": "HD-55",
+      "source_url": "https://ballotpedia.org/Amelia_Rabroker"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d806",
+      "name": "Hillary Hickland",
+      "party": "R",
+      "office": "State House HD-55",
+      "district": "HD-55",
+      "source_url": "https://ballotpedia.org/Hillary_Hickland"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d808",
+      "name": "Pat Curry",
+      "party": "R",
+      "office": "State House HD-56",
+      "district": "HD-56",
+      "source_url": "https://ballotpedia.org/Pat_Curry"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d809",
+      "name": "Ray Stith",
+      "party": "D",
+      "office": "State House HD-57",
+      "district": "HD-57",
+      "source_url": "https://ballotpedia.org/Ray_Stith"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d80a",
+      "name": "Richard Hayes",
+      "party": "R",
+      "office": "State House HD-57",
+      "district": "HD-57",
+      "source_url": "https://ballotpedia.org/Richard_Hayes_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d80b",
+      "name": "Chris Oldham",
+      "party": "D",
+      "office": "State House HD-58",
+      "district": "HD-58",
+      "source_url": "https://ballotpedia.org/Chris_Oldham"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d80d",
+      "name": "Andrew Turner",
+      "party": "D",
+      "office": "State House HD-59",
+      "district": "HD-59",
+      "source_url": "https://ballotpedia.org/Andrew_Turner"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d80f",
+      "name": "Krissy Guess",
+      "party": "D",
+      "office": "State House HD-60",
+      "district": "HD-60",
+      "source_url": "https://ballotpedia.org/Krissy_Guess"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d811",
+      "name": "Brittany Black",
+      "party": "D",
+      "office": "State House HD-61",
+      "district": "HD-61",
+      "source_url": "https://ballotpedia.org/Brittany_Black"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d812",
+      "name": "Keresa Richardson",
+      "party": "R",
+      "office": "State House HD-61",
+      "district": "HD-61",
+      "source_url": "https://ballotpedia.org/Keresa_Richardson"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d813",
+      "name": "Catherine Thorne",
+      "party": "D",
+      "office": "State House HD-62",
+      "district": "HD-62",
+      "source_url": "https://ballotpedia.org/Catherine_Thorne"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d815",
+      "name": "H. Denise Wooten",
+      "party": "D",
+      "office": "State House HD-63",
+      "district": "HD-63",
+      "source_url": "https://ballotpedia.org/H._Denise_Wooten"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d816",
+      "name": "Ben Bumgarner",
+      "party": "R",
+      "office": "State House HD-63",
+      "district": "HD-63",
+      "source_url": "https://ballotpedia.org/Ben_Bumgarner"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d817",
+      "name": "Julie Evans",
+      "party": "D",
+      "office": "State House HD-64",
+      "district": "HD-64",
+      "source_url": "https://ballotpedia.org/Julie_Evans"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d819",
+      "name": "Detrick Deburr",
+      "party": "D",
+      "office": "State House HD-65",
+      "district": "HD-65",
+      "source_url": "https://ballotpedia.org/Detrick_Deburr"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d81a",
+      "name": "Mitch Little",
+      "party": "R",
+      "office": "State House HD-65",
+      "district": "HD-65",
+      "source_url": "https://ballotpedia.org/Mitch_Little"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d81b",
+      "name": "Sandeep Srivastava",
+      "party": "D",
+      "office": "State House HD-66",
+      "district": "HD-66",
+      "source_url": "https://ballotpedia.org/Sandeep_Srivastava"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d81c",
+      "name": "Matt Shaheen",
+      "party": "R",
+      "office": "State House HD-66",
+      "district": "HD-66",
+      "source_url": "https://ballotpedia.org/Matt_Shaheen"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d81d",
+      "name": "Jordan Wheatley",
+      "party": "D",
+      "office": "State House HD-67",
+      "district": "HD-67",
+      "source_url": "https://ballotpedia.org/Jordan_Wheatley"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d81f",
+      "name": "Jasmine Henderson",
+      "party": "D",
+      "office": "State House HD-68",
+      "district": "HD-68",
+      "source_url": "https://ballotpedia.org/Jasmine_Henderson"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d820",
+      "name": "David Spiller",
+      "party": "R",
+      "office": "State House HD-68",
+      "district": "HD-68",
+      "source_url": "https://ballotpedia.org/David_Spiller"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d821",
+      "name": "Leilani Barnett",
+      "party": "D",
+      "office": "State House HD-69",
+      "district": "HD-69",
+      "source_url": "https://ballotpedia.org/Leilani_Barnett"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d824",
+      "name": "George Flint",
+      "party": "R",
+      "office": "State House HD-70",
+      "district": "HD-70",
+      "source_url": "https://ballotpedia.org/George_Flint"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d826",
+      "name": "Jay Hardaway",
+      "party": "R",
+      "office": "State House HD-71",
+      "district": "HD-71",
+      "source_url": "https://ballotpedia.org/Jay_Hardaway"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d827",
+      "name": "Shiloh Salazar",
+      "party": "D",
+      "office": "State House HD-72",
+      "district": "HD-72",
+      "source_url": "https://ballotpedia.org/Shiloh_Salazar"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d829",
+      "name": "Merrie Fox",
+      "party": "D",
+      "office": "State House HD-73",
+      "district": "HD-73",
+      "source_url": "https://ballotpedia.org/Merrie_Fox"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d82a",
+      "name": "Carrie Isaac",
+      "party": "R",
+      "office": "State House HD-73",
+      "district": "HD-73",
+      "source_url": "https://ballotpedia.org/Carrie_Isaac"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d82b",
+      "name": "Eddie Morales Jr.",
+      "party": "D",
+      "office": "State House HD-74",
+      "district": "HD-74",
+      "source_url": "https://ballotpedia.org/Eddie_Morales_Jr."
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d82c",
+      "name": "Mary Gonzalez",
+      "party": "D",
+      "office": "State House HD-75",
+      "district": "HD-75",
+      "source_url": "https://ballotpedia.org/Mary_Gonzalez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d82d",
+      "name": "Suleman Lalani",
+      "party": "D",
+      "office": "State House HD-76",
+      "district": "HD-76",
+      "source_url": "https://ballotpedia.org/Suleman_Lalani"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d82e",
+      "name": "Linda Howell",
+      "party": "R",
+      "office": "State House HD-76",
+      "district": "HD-76",
+      "source_url": "https://ballotpedia.org/Linda_Howell"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d830",
+      "name": "Humberto Perez",
+      "party": "R",
+      "office": "State House HD-77",
+      "district": "HD-77",
+      "source_url": "https://ballotpedia.org/Humberto_Perez_(Texas_State_House_candidate)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d831",
+      "name": "Joseph Moody",
+      "party": "D",
+      "office": "State House HD-78",
+      "district": "HD-78",
+      "source_url": "https://ballotpedia.org/Joseph_Moody"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d832",
+      "name": "Claudia Ordaz",
+      "party": "D",
+      "office": "State House HD-79",
+      "district": "HD-79",
+      "source_url": "https://ballotpedia.org/Claudia_Ordaz"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d833",
+      "name": "Jesse Romero",
+      "party": "R",
+      "office": "State House HD-79",
+      "district": "HD-79",
+      "source_url": "https://ballotpedia.org/Jesse_Romero"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d834",
+      "name": "Cecilia Castellano",
+      "party": "D",
+      "office": "State House HD-80",
+      "district": "HD-80",
+      "source_url": "https://ballotpedia.org/Cecilia_Castellano"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d835",
+      "name": "Don McLaughlin",
+      "party": "R",
+      "office": "State House HD-80",
+      "district": "HD-80",
+      "source_url": "https://ballotpedia.org/Don_McLaughlin"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d836",
+      "name": "Ceasar Sanchez",
+      "party": "D",
+      "office": "State House HD-81",
+      "district": "HD-81",
+      "source_url": "https://ballotpedia.org/Ceasar_Sanchez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d837",
+      "name": "Brooks Landgraf",
+      "party": "R",
+      "office": "State House HD-81",
+      "district": "HD-81",
+      "source_url": "https://ballotpedia.org/Brooks_Landgraf"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d838",
+      "name": "Cathy Broadrick",
+      "party": "D",
+      "office": "State House HD-82",
+      "district": "HD-82",
+      "source_url": "https://ballotpedia.org/Cathy_Broadrick"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d839",
+      "name": "Tom Craddick",
+      "party": "R",
+      "office": "State House HD-82",
+      "district": "HD-82",
+      "source_url": "https://ballotpedia.org/Tom_Craddick"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d83c",
+      "name": "Margaret Durham",
+      "party": "D",
+      "office": "State House HD-84",
+      "district": "HD-84",
+      "source_url": "https://ballotpedia.org/Margaret_Durham"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d83d",
+      "name": "Carl Tepper",
+      "party": "R",
+      "office": "State House HD-84",
+      "district": "HD-84",
+      "source_url": "https://ballotpedia.org/Carl_Tepper"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d83e",
+      "name": "Lawrence Brandyburg",
+      "party": "D",
+      "office": "State House HD-85",
+      "district": "HD-85",
+      "source_url": "https://ballotpedia.org/Lawrence_Brandyburg"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d83f",
+      "name": "Dennis Geesaman",
+      "party": "R",
+      "office": "State House HD-85",
+      "district": "HD-85",
+      "source_url": "https://ballotpedia.org/Dennis_Geesaman"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d840",
+      "name": "Cullin Knutson",
+      "party": "D",
+      "office": "State House HD-86",
+      "district": "HD-86",
+      "source_url": "https://ballotpedia.org/Cullin_Knutson"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d841",
+      "name": "Holly Jeffreys",
+      "party": "R",
+      "office": "State House HD-86",
+      "district": "HD-86",
+      "source_url": "https://ballotpedia.org/Holly_Jeffreys"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d842",
+      "name": "Diana Loya",
+      "party": "D",
+      "office": "State House HD-87",
+      "district": "HD-87",
+      "source_url": "https://ballotpedia.org/Diana_Loya"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d843",
+      "name": "Caroline Fairly",
+      "party": "R",
+      "office": "State House HD-87",
+      "district": "HD-87",
+      "source_url": "https://ballotpedia.org/Caroline_Fairly"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d844",
+      "name": "Heather Wallace",
+      "party": "D",
+      "office": "State House HD-88",
+      "district": "HD-88",
+      "source_url": "https://ballotpedia.org/Heather_Wallace"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d845",
+      "name": "Ken King",
+      "party": "R",
+      "office": "State House HD-88",
+      "district": "HD-88",
+      "source_url": "https://ballotpedia.org/Ken_King"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d846",
+      "name": "Angie Carraway",
+      "party": "D",
+      "office": "State House HD-89",
+      "district": "HD-89",
+      "source_url": "https://ballotpedia.org/Angie_Carraway"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d847",
+      "name": "Candy Noble",
+      "party": "R",
+      "office": "State House HD-89",
+      "district": "HD-89",
+      "source_url": "https://ballotpedia.org/Candy_Noble"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d848",
+      "name": "Ramon Romero Jr.",
+      "party": "D",
+      "office": "State House HD-90",
+      "district": "HD-90",
+      "source_url": "https://ballotpedia.org/Ramon_Romero_Jr."
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d849",
+      "name": "Yisak Worku",
+      "party": "D",
+      "office": "State House HD-91",
+      "district": "HD-91",
+      "source_url": "https://ballotpedia.org/Yisak_Worku"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d84a",
+      "name": "David Lowe",
+      "party": "R",
+      "office": "State House HD-91",
+      "district": "HD-91",
+      "source_url": "https://ballotpedia.org/David_Lowe_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d84c",
+      "name": "JP Woodruff",
+      "party": "R",
+      "office": "State House HD-92",
+      "district": "HD-92",
+      "source_url": "https://ballotpedia.org/JP_Woodruff"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d84d",
+      "name": "Ericka Lomick",
+      "party": "D",
+      "office": "State House HD-93",
+      "district": "HD-93",
+      "source_url": "https://ballotpedia.org/Ericka_Lomick"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d84e",
+      "name": "Alan Blaylock",
+      "party": "R",
+      "office": "State House HD-93",
+      "district": "HD-93",
+      "source_url": "https://ballotpedia.org/Alan_Blaylock"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d84f",
+      "name": "Katie O'Brien Duzan",
+      "party": "D",
+      "office": "State House HD-94",
+      "district": "HD-94",
+      "source_url": "https://ballotpedia.org/Katie_O'Brien_Duzan"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d850",
+      "name": "Cheryl Bean",
+      "party": "R",
+      "office": "State House HD-94",
+      "district": "HD-94",
+      "source_url": "https://ballotpedia.org/Cheryl_Bean"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d852",
+      "name": "Ebony Turner",
+      "party": "D",
+      "office": "State House HD-96",
+      "district": "HD-96",
+      "source_url": "https://ballotpedia.org/Ebony_Turner"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d853",
+      "name": "Ellen Fleischmann",
+      "party": "R",
+      "office": "State House HD-96",
+      "district": "HD-96",
+      "source_url": "https://ballotpedia.org/Ellen_Fleischmann"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d854",
+      "name": "John McQueeney",
+      "party": "R",
+      "office": "State House HD-97",
+      "district": "HD-97",
+      "source_url": "https://ballotpedia.org/John_McQueeney"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d855",
+      "name": "Cate Brennan",
+      "party": "D",
+      "office": "State House HD-98",
+      "district": "HD-98",
+      "source_url": "https://ballotpedia.org/Cate_Brennan"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d856",
+      "name": "Armin Mizani",
+      "party": "R",
+      "office": "State House HD-98",
+      "district": "HD-98",
+      "source_url": "https://ballotpedia.org/Armin_Mizani"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d857",
+      "name": "Michelle Winder",
+      "party": "D",
+      "office": "State House HD-99",
+      "district": "HD-99",
+      "source_url": "https://ballotpedia.org/Michelle_Winder"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d858",
+      "name": "Charlie Geren",
+      "party": "R",
+      "office": "State House HD-99",
+      "district": "HD-99",
+      "source_url": "https://ballotpedia.org/Charlie_Geren"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d859",
+      "name": "Jordan Hoffnagle",
+      "party": "R",
+      "office": "State House HD-100",
+      "district": "HD-100",
+      "source_url": "https://ballotpedia.org/Jordan_Hoffnagle"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d85a",
+      "name": "Ana-Maria Ramos",
+      "party": "D",
+      "office": "State House HD-102",
+      "district": "HD-102",
+      "source_url": "https://ballotpedia.org/Ana-Maria_Ramos"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d85b",
+      "name": "Bonnie Abadie",
+      "party": "R",
+      "office": "State House HD-102",
+      "district": "HD-102",
+      "source_url": "https://ballotpedia.org/Bonnie_Abadie"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d85d",
+      "name": "Melanie Medley-Thomas",
+      "party": "R",
+      "office": "State House HD-103",
+      "district": "HD-103",
+      "source_url": "https://ballotpedia.org/Melanie_Medley-Thomas"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d85e",
+      "name": "Jessica Gonzalez",
+      "party": "D",
+      "office": "State House HD-104",
+      "district": "HD-104",
+      "source_url": "https://ballotpedia.org/Jessica_Gonzalez_(Texas_House_of_Representatives)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d860",
+      "name": "Joe Mayes",
+      "party": "D",
+      "office": "State House HD-106",
+      "district": "HD-106",
+      "source_url": "https://ballotpedia.org/Joe_Mayes"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d861",
+      "name": "Jared Patterson",
+      "party": "R",
+      "office": "State House HD-106",
+      "district": "HD-106",
+      "source_url": "https://ballotpedia.org/Jared_Patterson"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d862",
+      "name": "Linda Garcia",
+      "party": "D",
+      "office": "State House HD-107",
+      "district": "HD-107",
+      "source_url": "https://ballotpedia.org/Linda_Garcia_(Texas_state_house_representative)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d863",
+      "name": "Allison Mitchell",
+      "party": "D",
+      "office": "State House HD-108",
+      "district": "HD-108",
+      "source_url": "https://ballotpedia.org/Allison_Mitchell"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d864",
+      "name": "Morgan Meyer",
+      "party": "R",
+      "office": "State House HD-108",
+      "district": "HD-108",
+      "source_url": "https://ballotpedia.org/Morgan_Meyer"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d865",
+      "name": "Aicha Davis",
+      "party": "D",
+      "office": "State House HD-109",
+      "district": "HD-109",
+      "source_url": "https://ballotpedia.org/Aicha_Davis"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d866",
+      "name": "Will Campbell",
+      "party": "R",
+      "office": "State House HD-109",
+      "district": "HD-109",
+      "source_url": "https://ballotpedia.org/Will_Campbell"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d867",
+      "name": "Toni Rose",
+      "party": "D",
+      "office": "State House HD-110",
+      "district": "HD-110",
+      "source_url": "https://ballotpedia.org/Toni_Rose"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d869",
+      "name": "Zach Herbert",
+      "party": "D",
+      "office": "State House HD-112",
+      "district": "HD-112",
+      "source_url": "https://ballotpedia.org/Zach_Herbert"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d86b",
+      "name": "Rhetta Andrews Bowers",
+      "party": "D",
+      "office": "State House HD-113",
+      "district": "HD-113",
+      "source_url": "https://ballotpedia.org/Rhetta_Andrews_Bowers"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d86c",
+      "name": "Stephen Stanley",
+      "party": "R",
+      "office": "State House HD-113",
+      "district": "HD-113",
+      "source_url": "https://ballotpedia.org/Stephen_W._Stanley"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d86d",
+      "name": "John W. Bryant",
+      "party": "D",
+      "office": "State House HD-114",
+      "district": "HD-114",
+      "source_url": "https://ballotpedia.org/John_Bryant_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d86e",
+      "name": "Tim McDonough",
+      "party": "R",
+      "office": "State House HD-114",
+      "district": "HD-114",
+      "source_url": "https://ballotpedia.org/Tim_McDonough"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d86f",
+      "name": "Cassandra Garcia Hernandez",
+      "party": "D",
+      "office": "State House HD-115",
+      "district": "HD-115",
+      "source_url": "https://ballotpedia.org/Cassandra_Garcia_Hernandez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d870",
+      "name": "Danny Rosellini",
+      "party": "R",
+      "office": "State House HD-115",
+      "district": "HD-115",
+      "source_url": "https://ballotpedia.org/Danny_Rosellini"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d872",
+      "name": "Rhett Rosenquest Smith",
+      "party": "R",
+      "office": "State House HD-116",
+      "district": "HD-116",
+      "source_url": "https://ballotpedia.org/Rhett_Rosenquest_Smith"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d873",
+      "name": "Philip Cortez",
+      "party": "D",
+      "office": "State House HD-117",
+      "district": "HD-117",
+      "source_url": "https://ballotpedia.org/Philip_Cortez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d874",
+      "name": "Ben Mostyn",
+      "party": "R",
+      "office": "State House HD-117",
+      "district": "HD-117",
+      "source_url": "https://ballotpedia.org/Ben_Mostyn"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d875",
+      "name": "Kristian Carranza",
+      "party": "D",
+      "office": "State House HD-118",
+      "district": "HD-118",
+      "source_url": "https://ballotpedia.org/Kristian_Carranza"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d876",
+      "name": "Elizabeth Campos",
+      "party": "D",
+      "office": "State House HD-119",
+      "district": "HD-119",
+      "source_url": "https://ballotpedia.org/Elizabeth_Campos"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d877",
+      "name": "Melva Perez",
+      "party": "R",
+      "office": "State House HD-119",
+      "district": "HD-119",
+      "source_url": "https://ballotpedia.org/Melva_Perez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d879",
+      "name": "Zack Dunn",
+      "party": "D",
+      "office": "State House HD-121",
+      "district": "HD-121",
+      "source_url": "https://ballotpedia.org/Zack_Dunn"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d87a",
+      "name": "Marc LaHood",
+      "party": "R",
+      "office": "State House HD-121",
+      "district": "HD-121",
+      "source_url": "https://ballotpedia.org/Marc_LaHood"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d87b",
+      "name": "Shelly Nickels",
+      "party": "D",
+      "office": "State House HD-122",
+      "district": "HD-122",
+      "source_url": "https://ballotpedia.org/Shelly_Nickels"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d87d",
+      "name": "Diego Bernal",
+      "party": "D",
+      "office": "State House HD-123",
+      "district": "HD-123",
+      "source_url": "https://ballotpedia.org/Diego_Bernal"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d87f",
+      "name": "Sylvia Soto",
+      "party": "R",
+      "office": "State House HD-124",
+      "district": "HD-124",
+      "source_url": "https://ballotpedia.org/Sylvia_Soto"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d880",
+      "name": "Ricardo Martinez",
+      "party": "R",
+      "office": "State House HD-125",
+      "district": "HD-125",
+      "source_url": "https://ballotpedia.org/Ricardo_Martinez_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d881",
+      "name": "Stefanie Bord",
+      "party": "D",
+      "office": "State House HD-126",
+      "district": "HD-126",
+      "source_url": "https://ballotpedia.org/Stefanie_Bord"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d882",
+      "name": "Michelle Williams",
+      "party": "D",
+      "office": "State House HD-127",
+      "district": "HD-127",
+      "source_url": "https://ballotpedia.org/Michelle_Williams_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d884",
+      "name": "Desiree Klaus",
+      "party": "D",
+      "office": "State House HD-128",
+      "district": "HD-128",
+      "source_url": "https://ballotpedia.org/Desiree_Klaus"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d885",
+      "name": "Tom Butler",
+      "party": "R",
+      "office": "State House HD-128",
+      "district": "HD-128",
+      "source_url": "https://ballotpedia.org/Tom_Butler_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d886",
+      "name": "Albert Wittliff",
+      "party": "D",
+      "office": "State House HD-129",
+      "district": "HD-129",
+      "source_url": "https://ballotpedia.org/Albert_Wittliff"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d887",
+      "name": "Scott Bowen",
+      "party": "R",
+      "office": "State House HD-129",
+      "district": "HD-129",
+      "source_url": "https://ballotpedia.org/Scott_Bowen"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d888",
+      "name": "Brett Robinson",
+      "party": "D",
+      "office": "State House HD-130",
+      "district": "HD-130",
+      "source_url": "https://ballotpedia.org/Brett_Robinson_(Texas)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d88a",
+      "name": "Scott Whitmarsh",
+      "party": "R",
+      "office": "State House HD-131",
+      "district": "HD-131",
+      "source_url": "https://ballotpedia.org/Scott_Whitmarsh"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d88b",
+      "name": "Sara McGee",
+      "party": "D",
+      "office": "State House HD-132",
+      "district": "HD-132",
+      "source_url": "https://ballotpedia.org/Sara_McGee"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d88c",
+      "name": "Mike Schofield",
+      "party": "R",
+      "office": "State House HD-132",
+      "district": "HD-132",
+      "source_url": "https://ballotpedia.org/Mike_Schofield"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d88d",
+      "name": "Josh Wallenstein",
+      "party": "D",
+      "office": "State House HD-133",
+      "district": "HD-133",
+      "source_url": "https://ballotpedia.org/Josh_Wallenstein"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d88e",
+      "name": "Mano Deayala",
+      "party": "R",
+      "office": "State House HD-133",
+      "district": "HD-133",
+      "source_url": "https://ballotpedia.org/Mano_Deayala"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d88f",
+      "name": "Ann Johnson",
+      "party": "D",
+      "office": "State House HD-134",
+      "district": "HD-134",
+      "source_url": "https://ballotpedia.org/Ann_Johnson"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d890",
+      "name": "Mike Michna",
+      "party": "R",
+      "office": "State House HD-134",
+      "district": "HD-134",
+      "source_url": "https://ballotpedia.org/Mike_Michna"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d892",
+      "name": "Liz Ramos",
+      "party": "R",
+      "office": "State House HD-135",
+      "district": "HD-135",
+      "source_url": "https://ballotpedia.org/Liz_Ramos"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d894",
+      "name": "Theodore Schramm",
+      "party": "R",
+      "office": "State House HD-136",
+      "district": "HD-136",
+      "source_url": "https://ballotpedia.org/Theodore_Schramm"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d896",
+      "name": "Helen Zhou",
+      "party": "R",
+      "office": "State House HD-137",
+      "district": "HD-137",
+      "source_url": "https://ballotpedia.org/Helen_Zhou"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d897",
+      "name": "Tyler Smith",
+      "party": "D",
+      "office": "State House HD-138",
+      "district": "HD-138",
+      "source_url": "https://ballotpedia.org/Tyler_Smith_(Texas_State_House_candidate)"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d898",
+      "name": "Lacey Hull",
+      "party": "R",
+      "office": "State House HD-138",
+      "district": "HD-138",
+      "source_url": "https://ballotpedia.org/Lacey_Hull"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d89a",
+      "name": "Kyle Harding",
+      "party": "R",
+      "office": "State House HD-139",
+      "district": "HD-139",
+      "source_url": "https://ballotpedia.org/Kyle_Harding"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d89c",
+      "name": "Laura Garcia DeLeon",
+      "party": "R",
+      "office": "State House HD-140",
+      "district": "HD-140",
+      "source_url": "https://ballotpedia.org/Laura_Garcia_DeLeon"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d89e",
+      "name": "Julie Hunt",
+      "party": "R",
+      "office": "State House HD-141",
+      "district": "HD-141",
+      "source_url": "https://ballotpedia.org/Julie_Hunt"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a1",
+      "name": "Frank Salazar",
+      "party": "R",
+      "office": "State House HD-143",
+      "district": "HD-143",
+      "source_url": "https://ballotpedia.org/Frank_Salazar"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a2",
+      "name": "Mary Ann Perez",
+      "party": "D",
+      "office": "State House HD-144",
+      "district": "HD-144",
+      "source_url": "https://ballotpedia.org/Mary_Ann_Perez"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a3",
+      "name": "David Flores",
+      "party": "R",
+      "office": "State House HD-144",
+      "district": "HD-144",
+      "source_url": "https://ballotpedia.org/David_Flores"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a5",
+      "name": "Inocensia Moreno",
+      "party": "R",
+      "office": "State House HD-145",
+      "district": "HD-145",
+      "source_url": "https://ballotpedia.org/Inocensia_Moreno"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a6",
+      "name": "Lauren Ashley Simmons",
+      "party": "D",
+      "office": "State House HD-146",
+      "district": "HD-146",
+      "source_url": "https://ballotpedia.org/Lauren_Ashley_Simmons"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a7",
+      "name": "Alexandria Butler",
+      "party": "R",
+      "office": "State House HD-146",
+      "district": "HD-146",
+      "source_url": "https://ballotpedia.org/Alexandria_Butler"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8a9",
+      "name": "Theodis Daniel",
+      "party": "R",
+      "office": "State House HD-147",
+      "district": "HD-147",
+      "source_url": "https://ballotpedia.org/Theodis_Daniel"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8ab",
+      "name": "Amanda LaBrie",
+      "party": "R",
+      "office": "State House HD-148",
+      "district": "HD-148",
+      "source_url": "https://ballotpedia.org/Amanda_LaBrie"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8ac",
+      "name": "Dave Bennett",
+      "party": "R",
+      "office": "State House HD-149",
+      "district": "HD-149",
+      "source_url": "https://ballotpedia.org/Dave_Bennett"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8ad",
+      "name": "A'Yonna Kellum",
+      "party": "D",
+      "office": "State House HD-150",
+      "district": "HD-150",
+      "source_url": "https://ballotpedia.org/A'Yonna_Kellum"
+    },
+    {
+      "_id": "69a9c963e705f140d3c4d8ae",
+      "name": "Valoree Swanson",
+      "party": "R",
+      "office": "State House HD-150",
+      "district": "HD-150",
+      "source_url": "https://ballotpedia.org/Valoree_Swanson"
+    },
+    {
+      "_id": "69a9dc59631231bf78551dfd",
+      "name": "Shaun Finnie",
+      "party": "D",
+      "office": "U.S. House TX-2",
+      "district": "TX-2",
+      "source_url": "https://ballotpedia.org/Shaun_Finnie"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e00",
+      "name": "Evan Hunt",
+      "party": "D",
+      "office": "U.S. House TX-3",
+      "district": "TX-3",
+      "source_url": "https://ballotpedia.org/Evan_Hunt_(Texas)"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e02",
+      "name": "Jason Pearce",
+      "party": "D",
+      "office": "U.S. House TX-4",
+      "district": "TX-4",
+      "source_url": "https://ballotpedia.org/Jason_Pearce"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e05",
+      "name": "Danny Minton",
+      "party": "D",
+      "office": "U.S. House TX-6",
+      "district": "TX-6",
+      "source_url": "https://ballotpedia.org/Danny_Minton"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e07",
+      "name": "Laura Jones",
+      "party": "D",
+      "office": "U.S. House TX-8",
+      "district": "TX-8",
+      "source_url": "https://ballotpedia.org/Laura_Jones_(Texas)"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e09",
+      "name": "Leticia Gutierrez",
+      "party": "D",
+      "office": "U.S. House TX-9",
+      "district": "TX-9",
+      "source_url": "https://ballotpedia.org/Leticia_Gutierrez"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e0a",
+      "name": "Caitlin Rourk",
+      "party": "D",
+      "office": "U.S. House TX-10",
+      "district": "TX-10",
+      "source_url": "https://ballotpedia.org/Caitlin_Rourk"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e0d",
+      "name": "Claire Reynolds",
+      "party": "D",
+      "office": "U.S. House TX-11",
+      "district": "TX-11",
+      "source_url": "https://ballotpedia.org/Claire_Reynolds"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e0f",
+      "name": "Heli Rodriguez Prilliman",
+      "party": "D",
+      "office": "U.S. House TX-12",
+      "district": "TX-12",
+      "source_url": "https://ballotpedia.org/Heli_Rodriguez_Prilliman"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e11",
+      "name": "Mark Nair",
+      "party": "D",
+      "office": "U.S. House TX-13",
+      "district": "TX-13",
+      "source_url": "https://ballotpedia.org/Mark_Nair"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e17",
+      "name": "Ronald Whitfield",
+      "party": "R",
+      "office": "U.S. House TX-18",
+      "district": "TX-18",
+      "source_url": "https://ballotpedia.org/Ronald_Whitfield"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e1a",
+      "name": "Edgardo Baez",
+      "party": "R",
+      "office": "U.S. House TX-20",
+      "district": "TX-20",
+      "source_url": "https://ballotpedia.org/Edgardo_Baez"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e1b",
+      "name": "Kristin Hook",
+      "party": "D",
+      "office": "U.S. House TX-21",
+      "district": "TX-21",
+      "source_url": "https://ballotpedia.org/Kristin_Hook"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e1d",
+      "name": "Marquette Greene-Scott",
+      "party": "D",
+      "office": "U.S. House TX-22",
+      "district": "TX-22",
+      "source_url": "https://ballotpedia.org/Marquette_Greene-Scott"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e1f",
+      "name": "Katy Padilla Stout",
+      "party": "D",
+      "office": "U.S. House TX-23",
+      "district": "TX-23",
+      "source_url": "https://ballotpedia.org/Katy_Padilla_Stout"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e22",
+      "name": "Dione Sims",
+      "party": "D",
+      "office": "U.S. House TX-25",
+      "district": "TX-25",
+      "source_url": "https://ballotpedia.org/Dione_Sims"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e24",
+      "name": "Steven Shook",
+      "party": "D",
+      "office": "U.S. House TX-26",
+      "district": "TX-26",
+      "source_url": "https://ballotpedia.org/Steven_Shook"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e26",
+      "name": "Tanya Lloyd",
+      "party": "D",
+      "office": "U.S. House TX-27",
+      "district": "TX-27",
+      "source_url": "https://ballotpedia.org/Tanya_Lloyd"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e2b",
+      "name": "Frederick Haynes",
+      "party": "D",
+      "office": "U.S. House TX-30",
+      "district": "TX-30",
+      "source_url": "https://ballotpedia.org/Frederick_Haynes"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e2c",
+      "name": "John Carter",
+      "party": "R",
+      "office": "U.S. House TX-31",
+      "district": "TX-31",
+      "source_url": "https://ballotpedia.org/John_Carter_(Texas)"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e2d",
+      "name": "Justin Early",
+      "party": "D",
+      "office": "U.S. House TX-31",
+      "district": "TX-31",
+      "source_url": "https://ballotpedia.org/Justin_Early"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e2e",
+      "name": "Dan Barrios",
+      "party": "D",
+      "office": "U.S. House TX-32",
+      "district": "TX-32",
+      "source_url": "https://ballotpedia.org/Dan_Barrios"
+    },
+    {
+      "_id": "69a9dc59631231bf78551e2f",
+      "name": "Vicente Gonzalez Jr.",
+      "party": "D",
+      "office": "U.S. House TX-34",
+      "district": "TX-34",
+      "source_url": "https://ballotpedia.org/Vicente_Gonzalez_Jr."
+    },
+    {
+      "_id": "69a9dc59631231bf78551e33",
+      "name": "Melissa McDonough",
+      "party": "D",
+      "office": "U.S. House TX-38",
+      "district": "TX-38",
+      "source_url": "https://ballotpedia.org/Melissa_McDonough"
+    }
+  ]
+}

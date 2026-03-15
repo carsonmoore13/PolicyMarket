@@ -4,20 +4,54 @@ import { resolveAddress, normalizeAddressKey } from "../services/addressResolver
 import { filterCandidates, isAllowedCandidate } from "../services/candidateFilter.js";
 import { triggerDiscovery, isDiscovering } from "../services/raceDiscovery.js";
 
+// Generic party platform fallbacks — used when a candidate has no specific policies.
+const GENERIC_POLICIES = {
+  D: [
+    "Expand healthcare access",
+    "Climate action & clean energy",
+    "Strengthen workers' rights",
+    "Public education funding",
+    "Protect voting rights",
+  ],
+  R: [
+    "Lower taxes & reduce spending",
+    "Secure the border",
+    "Second Amendment protections",
+    "Deregulation & energy independence",
+    "Law and order & public safety",
+  ],
+};
+
 /**
  * Serialize a candidate document into the API response shape.
  * `image` is a convenience top-level field pointing at the S3 URL (or null).
  * `photo` retains the full sub-document for richer client-side use
  * (fallback initials, source label, etc.).
+ *
+ * Policies are guaranteed to be a non-empty array: DB policies → topics →
+ * generic party-platform fallback.
  */
 function serializeCandidate(c) {
   const photoUrl = c.photo?.url || null;
+  // Merge policies and topics so both storage schemas render correctly.
+  // Fall back to generic party policies so federal/state sidebar always has content.
+  const party = (c.party || "").toUpperCase();
+  const policies = (c.policies?.length ? c.policies : null) ||
+                   (c.topics?.length   ? c.topics   : null) ||
+                   GENERIC_POLICIES[party] ||
+                   [];
   return {
+    _id:          c._id?.toString() || null,
     name:         c.name,
     office:       c.office,
     office_level: c.office_level,
+    jurisdiction: c.jurisdiction || null,
     party:        c.party,
     district:     c.district,
+    home_city:    c.home_city || null,
+    status_2026:  c.status_2026 || null,
+    source_url:   c.source_url || null,
+    source_name:  c.source_name || null,
     // Convenience field — the S3 (or external) image URL, ready to use in <img src>
     image: photoUrl,
     photo: c.photo
@@ -29,7 +63,7 @@ function serializeCandidate(c) {
         }
       : null,
     geo:      c.geo      || null,
-    policies: c.policies || [],
+    policies,
   };
 }
 

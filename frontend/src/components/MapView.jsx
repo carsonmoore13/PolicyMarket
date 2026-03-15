@@ -3,6 +3,44 @@ import { createRoot } from "react-dom/client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import CandidateMarker from "./CandidateMarker.jsx";
+import { getDistrictCentroid } from "../utils/districtCentroids.js";
+
+// Default state center (Texas) used when a candidate has no geo data.
+const TX_CENTER = { lat: 31.0, lng: -98.5 };
+
+/**
+ * Resolve the base map position for a candidate.
+ * Priority: district centroid > geo fields > state center fallback.
+ */
+function resolveBasePosition(c) {
+  const geo = c.geo || {};
+  let lat = geo.lat ?? null;
+  let lng = geo.lng ?? null;
+
+  // Fallback to GeoJSON point coordinates
+  if (lat == null || lng == null) {
+    const coords = geo.geojson_point?.coordinates;
+    if (coords) {
+      lng = coords[0];
+      lat = coords[1];
+    }
+  }
+
+  // Override with district centroid when available
+  if (c.district) {
+    const dGeo = getDistrictCentroid(c.district, { lat, lng });
+    lat = dGeo.lat;
+    lng = dGeo.lng;
+  }
+
+  // Final fallback — state center so every candidate gets a marker
+  if (typeof lat !== "number" || typeof lng !== "number") {
+    lat = TX_CENTER.lat;
+    lng = TX_CENTER.lng;
+  }
+
+  return { lat, lng };
+}
 
 export default function MapView({
   candidates,
@@ -48,12 +86,12 @@ export default function MapView({
     const map = mapRef.current;
     if (!map) return;
     const onStart = () => { userInteractingRef.current = true; };
-    const onEnd   = () => { userInteractingRef.current = false; };
+    const onEnd = () => { userInteractingRef.current = false; };
     map.on("zoomstart mousedown touchstart", onStart);
-    map.on("zoomend  mouseup  touchend",   onEnd);
+    map.on("zoomend  mouseup  touchend", onEnd);
     return () => {
       map.off("zoomstart mousedown touchstart", onStart);
-      map.off("zoomend  mouseup  touchend",   onEnd);
+      map.off("zoomend  mouseup  touchend", onEnd);
     };
   }, []);
 
@@ -61,10 +99,7 @@ export default function MapView({
   const zipCenterRef = useRef(null);
 
   // Sidebar level -> map zoom preset.
-  // Fires immediately on tab switch but skips if the user is mid-interaction.
   const prevLevelRef = useRef(level);
-  // True once we've successfully flown to real local candidate coordinates.
-  // Resets to false whenever the level changes so the next local visit re-centers.
   const localZoomAppliedRef = useRef(false);
 
   useEffect(() => {
@@ -74,15 +109,10 @@ export default function MapView({
     const levelChanged = level !== prevLevelRef.current;
     if (levelChanged) {
       prevLevelRef.current = level;
-      localZoomAppliedRef.current = false; // reset on every tab switch
+      localZoomAppliedRef.current = false;
     }
 
-    // For non-local tabs: only run on the initial tab switch, not on later
-    // candidate refreshes.  For the local tab: also run when candidates
-    // arrive (if we haven't yet found valid coords for this visit).
     if (!levelChanged && !(level === "local" && !localZoomAppliedRef.current)) return;
-
-    // Don't interrupt an active user zoom/pan.
     if (userInteractingRef.current) return;
 
     const PRESETS = { federal: 6, state: 7, local: 14 };
@@ -90,26 +120,21 @@ export default function MapView({
     if (typeof targetZoom === "number") {
       let flyCenter = map.getCenter();
       if (level === "state") {
-        flyCenter = [31.0, -98.5];
+        flyCenter = [TX_CENTER.lat, TX_CENTER.lng];
       } else if (level === "local") {
-        // Compute centroid of local candidates so we zoom to where their icons are.
         const pts = candidates
           .map((c) => {
-            const geo = c.geo || {};
-            const lat = geo.lat ?? geo.geojson_point?.coordinates?.[1];
-            const lng = geo.lng ?? geo.geojson_point?.coordinates?.[0];
-            return typeof lat === "number" && typeof lng === "number" ? [lat, lng] : null;
+            const pos = resolveBasePosition(c);
+            return [pos.lat, pos.lng];
           })
-          .filter(Boolean);
+          .filter(([lat, lng]) => typeof lat === "number" && typeof lng === "number");
 
         if (pts.length > 0) {
           const avgLat = pts.reduce((s, p) => s + p[0], 0) / pts.length;
           const avgLng = pts.reduce((s, p) => s + p[1], 0) / pts.length;
           flyCenter = [avgLat, avgLng];
-          localZoomAppliedRef.current = true; // mark as done — don't re-center on future refreshes
+          localZoomAppliedRef.current = true;
         } else {
-          // Candidates haven't loaded yet — use ZIP centroid as temporary fallback.
-          // localZoomAppliedRef stays false so we re-run once candidates arrive.
           flyCenter = zipCenterRef.current ?? map.getCenter();
         }
       }
@@ -117,7 +142,7 @@ export default function MapView({
     }
   }, [level, candidates]);
 
-  // Fly to ZIP center when it changes; store it so local zoom can reuse it.
+  // Fly to ZIP center when it changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !center) return;
@@ -129,20 +154,7 @@ export default function MapView({
     }
   }, [center]);
 
-  // Deterministic small offset so multiple candidates in the same district
-  // don't sit exactly on top of each other.
-  function jitterLatLng(lat, lng, key) {
-    let hash = 0;
-    for (let i = 0; i < key.length; i += 1) {
-      hash = (hash * 31 + key.charCodeAt(i)) | 0;
-    }
-    const angle = ((hash % 360) * Math.PI) / 180;
-    const radiusDeg = 0.02 * ((hash & 0xff) / 255); // up to ~2km
-    const dLat = radiusDeg * Math.sin(angle);
-    const dLng = radiusDeg * Math.cos(angle);
-    return [lat + dLat, lng + dLng];
-  }
-
+  // ── Spatial placement: group candidates by base position & spread radially ──
   // Update markers when candidates change
   useEffect(() => {
     const map = mapRef.current;
@@ -150,21 +162,60 @@ export default function MapView({
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    candidates.forEach((c) => {
-      const geo = c.geo || {};
-      let lng = geo.lng;
-      let lat = geo.lat;
-      if ((!lng || !lat) && geo.geojson_point?.coordinates) {
-        [lng, lat] = geo.geojson_point.coordinates;
+    // Step 1: Resolve base positions for all candidates
+    const withBase = candidates.map((c) => {
+      const pos = resolveBasePosition(c);
+      return { c, baseLat: pos.lat, baseLng: pos.lng };
+    });
+
+    // Step 2: Group candidates that share the same base position
+    const groupMap = {};
+    withBase.forEach((item) => {
+      // Round to 3 decimals (~100m) so nearby centroids cluster together
+      const key = `${item.baseLat.toFixed(3)}|${item.baseLng.toFixed(3)}`;
+      (groupMap[key] ??= []).push(item);
+    });
+
+    // Step 3: Compute final positions with radial spread within each group
+    const placed = [];
+    for (const group of Object.values(groupMap)) {
+      const n = group.length;
+      if (n === 1) {
+        placed.push({ c: group[0].c, lat: group[0].baseLat, lng: group[0].baseLng });
+        continue;
       }
-      if (typeof lng !== "number" || typeof lat !== "number") return;
 
-      const [jLat, jLng] = jitterLatLng(
-        lat,
-        lng,
-        `${c.name || ""}|${c.office || ""}|${c.district || ""}`,
-      );
+      // Determine if this is a statewide cluster (candidates without districts)
+      const statewideCount = group.filter((g) => !g.c.district).length;
+      const isStatewideCluster = statewideCount > n / 2;
 
+      // Spread radius in degrees:
+      //   Statewide: 0.3° + 0.06° per candidate (~35-100km) — visible at zoom 6-7
+      //   District:  0.02° + 0.004° per candidate (~2-4km) — visible at zoom 8-10
+      const spread = isStatewideCluster
+        ? 0.3 + n * 0.06
+        : 0.02 + n * 0.004;
+
+      // Sort group for deterministic ordering: D before R, then alphabetical
+      group.sort((a, b) => {
+        const pa = (a.c.party || "").toUpperCase();
+        const pb = (b.c.party || "").toUpperCase();
+        if (pa !== pb) return pa < pb ? -1 : 1;
+        return (a.c.name || "").localeCompare(b.c.name || "");
+      });
+
+      group.forEach((item, i) => {
+        const angle = (2 * Math.PI * i) / n - Math.PI / 2; // start from top
+        placed.push({
+          c: item.c,
+          lat: item.baseLat + spread * Math.sin(angle),
+          lng: item.baseLng + spread * Math.cos(angle),
+        });
+      });
+    }
+
+    // Step 4: Create Leaflet markers
+    placed.forEach(({ c, lat, lng }) => {
       const el = document.createElement("div");
       const root = createRoot(el);
       root.render(
@@ -178,11 +229,11 @@ export default function MapView({
       const icon = L.divIcon({
         html: el,
         className: "pm-marker-wrapper",
-        iconSize: [56, 72],  // wider+taller to include the label pill below
+        iconSize: [56, 72],
         iconAnchor: [28, 56],
       });
 
-      const marker = L.marker([jLat, jLng], { icon }).addTo(map);
+      const marker = L.marker([lat, lng], { icon }).addTo(map);
       markersRef.current.push(marker);
     });
   }, [candidates, onCandidateSelect, selectedCandidate]);
@@ -191,22 +242,18 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     const c = selectedCandidate;
-    if (!map || !c || !c.geo) return;
+    if (!map || !c) return;
 
-    let { lng, lat } = c.geo;
-    if ((!lng || !lat) && c.geo.geojson_point?.coordinates) {
-      [lng, lat] = c.geo.geojson_point.coordinates;
-    }
-    if (typeof lng !== "number" || typeof lat !== "number") return;
+    const pos = resolveBasePosition(c);
+    if (typeof pos.lat !== "number" || typeof pos.lng !== "number") return;
 
     let targetZoom = map.getZoom();
     const lvl = (c.office_level || "").toLowerCase();
-    // For House districts, zoom closer so the district is inspectable.
     if (lvl === "federal") targetZoom = 9;
     else if (lvl === "state") targetZoom = 8;
     else if (lvl === "city") targetZoom = 13;
 
-    map.flyTo([lat, lng], targetZoom, { duration: 0.9 });
+    map.flyTo([pos.lat, pos.lng], targetZoom, { duration: 0.9 });
   }, [selectedCandidate]);
 
   return (

@@ -1,71 +1,192 @@
+import { useState, useEffect, useCallback } from "react";
 import { getPartyBgClass } from "../utils/partyColors.js";
 
+function getInitials(name) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
 export default function CandidateDetailPanel({ candidate, onClose }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  // Animate in when candidate changes
+  useEffect(() => {
+    if (candidate) {
+      setImgFailed(false);
+      // Trigger slide-in on next frame
+      requestAnimationFrame(() => setVisible(true));
+    } else {
+      setVisible(false);
+    }
+  }, [candidate?._id]);
+
+  // Escape key to close
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Escape") onClose?.();
+    },
+    [onClose],
+  );
+  useEffect(() => {
+    if (candidate) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [candidate, handleKeyDown]);
+
   if (!candidate) return null;
+
   const partyClass = getPartyBgClass(candidate.party);
+  const photoUrl =
+    !imgFailed &&
+    candidate.photo?.url &&
+    candidate.photo?.source !== "gravatar_fallback"
+      ? candidate.photo.url
+      : null;
+  const initials =
+    candidate.photo?.fallback_initials || getInitials(candidate.name);
+  const partyColor =
+    (candidate.party || "").toUpperCase() === "R"
+      ? "#ef4444"
+      : (candidate.party || "").toUpperCase() === "D"
+        ? "#3b82f6"
+        : "#6b7280";
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose?.();
+  };
+
   return (
-    <div className="pointer-events-none fixed inset-0 flex justify-end md:items-stretch">
-      <div className="pointer-events-auto h-full w-full max-w-md translate-x-0 transform bg-slate-900/95 p-4 text-sm shadow-xl transition-transform md:translate-x-0">
-        <div className="mb-3 flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              {candidate.name}
-            </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-300">
-              <span className={`inline-flex items-center gap-2 rounded px-2 py-0.5 text-xs ${partyClass}`}>
-                {candidate.party || "Unknown party"}
+    <div
+      className="pm-detail-backdrop"
+      data-visible={visible ? "true" : undefined}
+      onClick={handleBackdropClick}
+    >
+      <div className="pm-detail-panel" data-visible={visible ? "true" : undefined}>
+        {/* Header */}
+        <div className="mb-4 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="pm-detail-avatar"
+              style={{ "--party-color": partyColor }}
+            >
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={candidate.name || "Candidate"}
+                  loading="lazy"
+                  width={64}
+                  height={64}
+                  className="pm-detail-avatar-img"
+                  onError={() => setImgFailed(true)}
+                />
+              ) : null}
+              <span
+                className="pm-sidebar-avatar-initials"
+                style={{ display: photoUrl ? "none" : "flex", fontSize: 22 }}
+              >
+                {initials}
               </span>
-              <span className="rounded border border-gray-600 px-2 py-0.5 text-[11px] uppercase tracking-wide text-gray-200">
-                {candidate.office_level}
-              </span>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white leading-tight">
+                {candidate.name}
+              </h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${partyClass}`}
+                >
+                  {candidate.party || "Unknown party"}
+                </span>
+                <span className="rounded border border-gray-600 px-2 py-0.5 text-[11px] uppercase tracking-wide text-gray-300">
+                  {candidate.office_level}
+                </span>
+                {candidate.status_2026 === "runoff" && (
+                  <span className="rounded bg-amber-600/20 border border-amber-500/40 px-2 py-0.5 text-[11px] font-semibold text-amber-400 uppercase">
+                    Runoff
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-white"
+            className="pm-detail-close"
+            aria-label="Close"
           >
-            ✕
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
-        <div className="space-y-2 text-xs text-gray-200">
-          <div>
-            <span className="font-semibold">Office:</span>{" "}
-            {candidate.office}{" "}
-            {candidate.district ? `· ${candidate.district}` : ""}
+
+        {/* Metadata */}
+        <div className="pm-detail-meta">
+          <div className="pm-detail-row">
+            <span className="pm-detail-label">Office</span>
+            <span>
+              {candidate.office}
+              {candidate.district ? ` · ${candidate.district}` : ""}
+            </span>
           </div>
-          <div>
-            <span className="font-semibold">Jurisdiction:</span>{" "}
-            {candidate.jurisdiction}
+          <div className="pm-detail-row">
+            <span className="pm-detail-label">Jurisdiction</span>
+            <span>{candidate.jurisdiction}</span>
           </div>
-          {candidate.filing_status && (
-            <div>
-              <span className="font-semibold">Filing status:</span>{" "}
-              {candidate.filing_status}
-            </div>
-          )}
-          {candidate.last_verified && (
-            <div>
-              <span className="font-semibold">Last verified:</span>{" "}
-              {new Date(candidate.last_verified).toLocaleString()}
-            </div>
-          )}
-          {candidate.source_url && (
-            <div>
-              <span className="font-semibold">Source:</span>{" "}
-              <a
-                href={candidate.source_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-400 hover:underline"
-              >
-                {candidate.source_name || "Source link"}
-              </a>
+          {candidate.home_city && (
+            <div className="pm-detail-row">
+              <span className="pm-detail-label">Location</span>
+              <span>{candidate.home_city}</span>
             </div>
           )}
         </div>
+
+        {/* Policy positions */}
+        {Array.isArray(candidate.policies) && candidate.policies.length > 0 && (
+          <div className="pm-detail-policies">
+            <div className="pm-detail-section-title">Policy positions</div>
+            <ul className="space-y-2">
+              {candidate.policies.map((p, i) => (
+                <li
+                  key={i}
+                  className="pm-detail-policy-item"
+                  style={{ animationDelay: `${i * 60}ms` }}
+                >
+                  <span
+                    className="pm-detail-policy-dot"
+                    style={{ background: partyColor }}
+                  />
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Source link */}
+        {candidate.source_url && (
+          <div className="pm-detail-footer">
+            <a
+              href={candidate.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="pm-detail-link"
+            >
+              <span>{candidate.source_name || "View on Ballotpedia"}</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 2h7v7M12 2L5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
