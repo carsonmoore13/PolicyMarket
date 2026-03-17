@@ -16,6 +16,7 @@ export default function App() {
   } = useAddressLookup();
 
   const [level, setLevel] = useState("federal");
+  const [sublevel, setSublevel] = useState(null);
   const [showAddressModal, setShowAddressModal] = useState(!addressData);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
 
@@ -46,6 +47,7 @@ export default function App() {
 
   const handleLevelChange = (lvl) => {
     setLevel(lvl);
+    setSublevel(null);
     setSelectedCandidate(null);
   };
 
@@ -68,7 +70,9 @@ export default function App() {
         address={address}
         onChangeAddressClick={() => setShowAddressModal(true)}
         level={level}
+        sublevel={sublevel}
         onLevelChange={handleLevelChange}
+        onSublevelChange={setSublevel}
         levelCounts={counts}
         totalCounts={totalCounts}
         candidates={candidates}

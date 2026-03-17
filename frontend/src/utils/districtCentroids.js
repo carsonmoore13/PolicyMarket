@@ -77,6 +77,50 @@ export const DISTRICT_CENTROIDS = {
     "SD-30": [33.5036, -97.8536],
     "SD-31": [35.8007, -101.4964],
 
+  // ── Texas City / Local Districts ─────────────────────────────────────
+  // Austin City Council Districts (approximate centroids)
+  "Austin District 1": [30.2849, -97.7128],
+  "Austin District 2": [30.2165, -97.6880],
+  "Austin District 3": [30.2100, -97.7350],
+  "Austin District 4": [30.1900, -97.6850],
+  "Austin District 5": [30.2200, -97.8000],
+  "Austin District 6": [30.4100, -97.8300],
+  "Austin District 7": [30.3700, -97.7100],
+  "Austin District 8": [30.1900, -97.8600],
+  "Austin District 9": [30.2750, -97.7500],
+  "Austin District 10": [30.3500, -97.7800],
+  // Houston City Council Districts (approximate centroids)
+  "Houston District A": [29.8200, -95.4100],
+  "Houston District B": [29.8600, -95.3400],
+  "Houston District C": [29.7700, -95.3900],
+  "Houston District D": [29.6800, -95.4000],
+  "Houston District E": [29.7500, -95.2600],
+  "Houston District F": [29.6800, -95.5200],
+  "Houston District G": [29.7200, -95.4600],
+  "Houston District H": [29.7900, -95.3700],
+  "Houston District I": [29.7200, -95.3600],
+  "Houston District J": [29.6500, -95.3200],
+  "Houston District K": [29.6200, -95.5100],
+  // Arlington City Council Districts (approximate centroids)
+  "Arlington District 1": [32.7600, -97.1300],
+  "Arlington District 2": [32.7600, -97.0800],
+  "Arlington District 3": [32.7200, -97.0800],
+  "Arlington District 4": [32.7500, -97.1300],
+  "Arlington District 5": [32.7100, -97.1200],
+  "Arlington District 6": [32.7400, -97.0600],
+  "Arlington District 7": [32.7000, -97.0600],
+  "Arlington District 8": [32.6900, -97.0900],
+  // Fort Worth City Council Districts (approximate centroids)
+  "Fort Worth District 2": [32.7200, -97.3500],
+  "Fort Worth District 3": [32.6900, -97.3400],
+  "Fort Worth District 4": [32.7300, -97.3100],
+  "Fort Worth District 5": [32.7800, -97.3700],
+  "Fort Worth District 6": [32.7500, -97.2800],
+  "Fort Worth District 7": [32.6600, -97.3800],
+  "Fort Worth District 8": [32.8300, -97.3500],
+  "Fort Worth District 9": [32.7900, -97.2800],
+  "Fort Worth District 10": [32.8200, -97.2600],
+
   // ── Texas State House Districts ───────────────────────────────────────
     "HD-1": [33.4337, -94.8653],
     "HD-2": [33.148, -96.041],
@@ -230,6 +274,13 @@ export const DISTRICT_CENTROIDS = {
     "HD-150": [30.0891, -95.4978],
 };
 
+// Build a case-insensitive lookup map so keys like "Houston District C"
+// match regardless of the casing used in candidate.district.
+const _CENTROID_UPPER = {};
+for (const [k, v] of Object.entries(DISTRICT_CENTROIDS)) {
+  _CENTROID_UPPER[k.toUpperCase()] = v;
+}
+
 function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -241,25 +292,26 @@ function hashString(str) {
 
 /**
  * Get the geographic centroid [lat, lng] for a candidate's district string.
- * Falls back to a deterministic hash-scattered offset around the TX center
- * for unknown/future districts.
+ * Falls back to a small deterministic offset around the provided fallback
+ * geo so markers for unknown districts stay near their city/region.
  *
- * @param {string} districtStr  e.g. "HD-47", "SD-14", "TX-37"
+ * @param {string} districtStr  e.g. "HD-47", "SD-14", "TX-37", "Houston District C"
  * @param {object} fallbackGeo  { lat, lng } to anchor fallback scatter
  */
 export function getDistrictCentroid(districtStr, fallbackGeo) {
   if (!districtStr) return fallbackGeo;
 
   const key = districtStr.toUpperCase().trim();
-  if (DISTRICT_CENTROIDS[key]) {
-    const [lat, lng] = DISTRICT_CENTROIDS[key];
+  if (_CENTROID_UPPER[key]) {
+    const [lat, lng] = _CENTROID_UPPER[key];
     return { lat, lng };
   }
 
-  // Deterministic scatter for unknown districts
+  // Deterministic scatter for unknown districts — keep radius small (≤0.05°,
+  // ~5 km) so markers stay within the candidate's city, not across the state.
   const hash = hashString(key);
-  const dLat = ((hash % 2000) / 1000) - 1.0;
-  const dLng = (((hash >> 4) % 3000) / 1000) - 1.5;
+  const dLat = ((hash % 100) / 1000) - 0.05;
+  const dLng = (((hash >> 4) % 100) / 1000) - 0.05;
   const baseLat = fallbackGeo?.lat || 31.0;
   const baseLng = fallbackGeo?.lng || -98.5;
   return { lat: baseLat + dLat, lng: baseLng + dLng };

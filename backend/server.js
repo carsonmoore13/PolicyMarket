@@ -11,6 +11,7 @@ import candidatesRouter from "./routes/candidates.js";
 import addressRouter from "./routes/address.js";
 import debugRouter from "./routes/debug.js";
 import adminRouter from "./routes/admin.js";
+import boundariesRouter from "./routes/boundaries.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,6 +40,7 @@ app.use("/api/candidates", candidatesRouter);
 app.use("/api/address-lookup", addressRouter);
 app.use("/api/debug", debugRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/district-boundary", boundariesRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });

@@ -22,12 +22,106 @@ function getPolicies(candidate) {
   return [];
 }
 
+/**
+ * Contextual empty state for sublevel filters — explains why there are no
+ * candidates rather than showing a generic "No candidates to display."
+ */
+function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
+  const officeName = sublevelLabels[sublevel] || sublevel;
+
+  // District-based races: tell the user their specific district isn't up
+  const districtSublevels = {
+    state_senate: userDistricts.state_senate,
+    state_house: userDistricts.state_house,
+    us_house: userDistricts.congressional,
+  };
+  const districtId = districtSublevels[sublevel];
+
+  if (districtId) {
+    return (
+      <>
+        <div className="no-election-icon">—</div>
+        <p className="text-xs text-gray-400 font-medium">
+          No 2026 election in {officeName}
+        </p>
+        <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
+          This seat is not up for election this cycle.
+          Texas State Senate terms are four years, and only
+          half the seats are contested each election.
+        </p>
+      </>
+    );
+  }
+
+  // Statewide offices with no candidates
+  return (
+    <>
+      <div className="no-election-icon">—</div>
+      <p className="text-xs text-gray-400 font-medium">
+        No candidates found for {officeName}
+      </p>
+      <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
+        There may not be a contested race for this office in 2026,
+        or candidate data has not yet been published.
+      </p>
+    </>
+  );
+}
+
+/**
+ * Filter candidates by sublevel jurisdiction.
+ */
+function filterBySublevel(candidates, sublevel) {
+  if (!sublevel) return candidates;
+
+  return candidates.filter((c) => {
+    const office = (c.office || "").toLowerCase();
+    const dist = (c.district || "").toUpperCase();
+
+    switch (sublevel) {
+      // Federal
+      case "us_senate":
+        return office.includes("senate") || office.includes("u.s. senate");
+      case "us_house":
+        return (
+          office.includes("representative") ||
+          office.includes("u.s. house") ||
+          office.includes("congress") ||
+          dist.startsWith("TX-")
+        );
+      // State — district races
+      case "state_senate":
+        return dist.startsWith("SD-") || office.includes("state senate");
+      case "state_house":
+        return dist.startsWith("HD-") || office.includes("state house") || office.includes("state representative") || office.includes("tx house");
+      // State — statewide offices
+      case "governor":
+        return office.includes("governor") && !office.includes("lieutenant");
+      case "lt_governor":
+        return office.includes("lieutenant governor") || office.includes("lt. governor");
+      case "attorney_general":
+        return office.includes("attorney general");
+      case "ag_commissioner":
+        return office.includes("agriculture");
+      case "land_commissioner":
+        return office.includes("land commissioner");
+      case "statewide":
+        // All statewide offices (no district)
+        return !dist || dist === "NONE";
+      default:
+        return true;
+    }
+  });
+}
+
 export default function AppLayout({
   addressData,
   address,
   onChangeAddressClick,
   level,
+  sublevel,
   onLevelChange,
+  onSublevelChange,
   levelCounts,
   totalCounts,
   candidates,
@@ -50,15 +144,18 @@ export default function AppLayout({
   }, [addressData?.location?.lng, addressData?.location?.lat]);
 
   const filteredCandidates = useMemo(() => {
+    let result = filterBySublevel(candidates, sublevel);
     const needle = search.toLowerCase().trim();
-    if (!needle) return candidates;
-    return candidates.filter((c) => {
-      const text = `${c.name || ""} ${c.office || ""} ${c.district || ""} ${(
-        c.party || ""
-      ).toString()} ${(c.policies || []).join(" ")} ${(c.topics || []).join(" ")}`.toLowerCase();
-      return text.includes(needle);
-    });
-  }, [candidates, search]);
+    if (needle) {
+      result = result.filter((c) => {
+        const text = `${c.name || ""} ${c.office || ""} ${c.district || ""} ${(
+          c.party || ""
+        ).toString()} ${(c.policies || []).join(" ")} ${(c.topics || []).join(" ")}`.toLowerCase();
+        return text.includes(needle);
+      });
+    }
+    return result;
+  }, [candidates, search, sublevel]);
 
   // Sidebar header: show city + state from the geocoded result.
   const locationLabel = addressData?.location?.city
@@ -83,6 +180,36 @@ export default function AppLayout({
         ? totalCounts?.state
         : totalCounts?.local;
 
+  const userDistricts = addressData?.districts || {};
+
+  // Pre-compute candidate counts per sublevel for badges
+  const sublevelCounts = useMemo(() => {
+    const counts = {};
+    const sublevels = [
+      "us_senate", "us_house",
+      "governor", "lt_governor", "attorney_general", "ag_commissioner", "land_commissioner",
+      "state_senate", "state_house",
+    ];
+    for (const sl of sublevels) {
+      counts[sl] = filterBySublevel(candidates, sl).length;
+    }
+    return counts;
+  }, [candidates]);
+
+  // Readable sublevel label for the list header
+  const sublevelLabels = {
+    us_senate: "U.S. Senate",
+    us_house: userDistricts.congressional ? `U.S. House · ${userDistricts.congressional}` : "U.S. House",
+    state_senate: userDistricts.state_senate ? `State Senate · ${userDistricts.state_senate}` : "State Senate",
+    state_house: userDistricts.state_house ? `State House · ${userDistricts.state_house}` : "State House",
+    governor: "Governor",
+    lt_governor: "Lieutenant Governor",
+    attorney_general: "Attorney General",
+    ag_commissioner: "Agriculture Commissioner",
+    land_commissioner: "Land Commissioner",
+    statewide: "Statewide Offices",
+  };
+
   return (
     <div className="app-container">
       <aside className="sidebar">
@@ -98,13 +225,29 @@ export default function AppLayout({
 
         <div className="search-area">
           <div className="input-group">
+            <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
             <input
               type="text"
               className="search-input"
-              placeholder="Search jurisdiction or candidate..."
+              placeholder="Search candidates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {search && (
+              <button
+                type="button"
+                className="search-clear"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="context-toggles">
             <button
@@ -129,23 +272,136 @@ export default function AppLayout({
               Local{typeof localCount === "number" ? ` • ${localCount}` : ""}
             </button>
           </div>
+          {level === "federal" && (
+            <div className="sublevel-filters">
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === null ? "active" : ""}`}
+                onClick={() => onSublevelChange(null)}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "us_senate" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "us_senate" ? null : "us_senate")}
+              >
+                U.S. Senate
+                {sublevelCounts.us_senate > 0 && <span className="sublevel-count">{sublevelCounts.us_senate}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "us_house" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "us_house" ? null : "us_house")}
+              >
+                U.S. House{userDistricts.congressional ? ` · ${userDistricts.congressional}` : ""}
+                {sublevelCounts.us_house > 0 && <span className="sublevel-count">{sublevelCounts.us_house}</span>}
+              </button>
+            </div>
+          )}
+          {level === "state" && (
+            <div className="sublevel-filters">
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === null ? "active" : ""}`}
+                onClick={() => onSublevelChange(null)}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "governor" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "governor" ? null : "governor")}
+              >
+                Governor
+                {sublevelCounts.governor > 0 && <span className="sublevel-count">{sublevelCounts.governor}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "lt_governor" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "lt_governor" ? null : "lt_governor")}
+              >
+                Lt. Gov
+                {sublevelCounts.lt_governor > 0 && <span className="sublevel-count">{sublevelCounts.lt_governor}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "attorney_general" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "attorney_general" ? null : "attorney_general")}
+              >
+                AG
+                {sublevelCounts.attorney_general > 0 && <span className="sublevel-count">{sublevelCounts.attorney_general}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "ag_commissioner" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "ag_commissioner" ? null : "ag_commissioner")}
+              >
+                Ag Comm.
+                {sublevelCounts.ag_commissioner > 0 && <span className="sublevel-count">{sublevelCounts.ag_commissioner}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "land_commissioner" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "land_commissioner" ? null : "land_commissioner")}
+              >
+                Land Comm.
+                {sublevelCounts.land_commissioner > 0 && <span className="sublevel-count">{sublevelCounts.land_commissioner}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "state_senate" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "state_senate" ? null : "state_senate")}
+              >
+                Senate{userDistricts.state_senate ? ` · ${userDistricts.state_senate}` : ""}
+                {sublevelCounts.state_senate > 0 && <span className="sublevel-count">{sublevelCounts.state_senate}</span>}
+              </button>
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === "state_house" ? "active" : ""}`}
+                onClick={() => onSublevelChange(sublevel === "state_house" ? null : "state_house")}
+              >
+                House{userDistricts.state_house ? ` · ${userDistricts.state_house}` : ""}
+                {sublevelCounts.state_house > 0 && <span className="sublevel-count">{sublevelCounts.state_house}</span>}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="list-header">
-          {listHeaderLabel} • {levelLabel}
-          {typeof totalForCurrentLevel === "number" && totalForCurrentLevel > 0 && (
-            <span className="ml-1">
-              {" "}
-              · Showing {filteredCandidates.length} of {totalForCurrentLevel}{" "}
-              {levelLabel.toLowerCase()} candidates statewide
-            </span>
+          {sublevel && sublevelLabels[sublevel] ? (
+            <>
+              <span className="jurisdiction-context">{sublevelLabels[sublevel]}</span>
+              <span className="list-header-count">
+                {filteredCandidates.length} candidate{filteredCandidates.length !== 1 ? "s" : ""}
+              </span>
+            </>
+          ) : (
+            <>
+              {listHeaderLabel} · {levelLabel}
+              {typeof totalForCurrentLevel === "number" && totalForCurrentLevel > 0 && (
+                <span className="list-header-count">
+                  Showing {filteredCandidates.length} of {totalForCurrentLevel}{" "}
+                  {levelLabel.toLowerCase()} candidates
+                </span>
+              )}
+            </>
           )}
         </div>
 
         <div className="candidates-list">
           {candidatesLoading ? (
-            <div className="flex h-full items-center justify-center">
-              <LoadingSpinner label="Loading candidates…" />
+            <div>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="skeleton-card" style={{ animationDelay: `${i * 120}ms` }}>
+                  <div className="skeleton-avatar" />
+                  <div className="skeleton-content">
+                    <div className="skeleton-line long" />
+                    <div className="skeleton-line medium" />
+                    <div className="skeleton-line tags" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : candidatesError ? (
             <div className="flex h-full items-center justify-center px-4 text-xs text-red-400">
@@ -163,12 +419,14 @@ export default function AppLayout({
                     This may take up to 30 seconds for new regions. Try switching tabs or refreshing.
                   </p>
                 </>
+              ) : sublevel ? (
+                <NoElectionNotice sublevel={sublevel} sublevelLabels={sublevelLabels} userDistricts={userDistricts} />
               ) : (
                 <p className="text-xs text-gray-500">No candidates to display.</p>
               )}
             </div>
           ) : (
-            filteredCandidates.map((c) => {
+            filteredCandidates.map((c, idx) => {
               const initials =
                 c.photo?.fallback_initials || getInitials(c.name);
               const policies = getPolicies(c);
@@ -182,16 +440,18 @@ export default function AppLayout({
               else if (partyCode === "OTH") partyLabel = "Other";
               else if (partyCode) partyLabel = partyCode;
               if (!partyLabel) partyLabel = "Unknown";
+              const partyColor = partyCode === "R" ? "#ef4444" : partyCode === "D" ? "#3b82f6" : "#6b7280";
               return (
                 <button
                   key={c._id || `${c.name}-${c.office}-${c.district}`}
                   type="button"
                   className={`candidate-card ${active ? "bg-active" : ""}`}
+                  style={{ "--card-party-color": partyColor, "--enter-delay": `${Math.min(idx, 12) * 40}ms` }}
                   onClick={() => onSelectCandidate(c)}
                 >
                   <div
                     className="pm-sidebar-avatar"
-                    style={{ "--party-color": (c.party || "").toUpperCase() === "R" ? "#ef4444" : (c.party || "").toUpperCase() === "D" ? "#3b82f6" : "#6b7280" }}
+                    style={{ "--party-color": partyColor }}
                   >
                     {c.photo?.url && c.photo?.source !== "gravatar_fallback" ? (
                       <img
@@ -269,9 +529,11 @@ export default function AppLayout({
 
       <main className="map-area">
         <MapView
-          candidates={candidates}
+          candidates={filteredCandidates}
           center={center}
           level={level}
+          sublevel={sublevel}
+          districts={addressData?.districts || null}
           onCandidateSelect={onSelectCandidate}
           selectedCandidate={selectedCandidate}
           onLevelFromZoom={onLevelChangeFromMap}

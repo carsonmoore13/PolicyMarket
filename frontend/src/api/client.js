@@ -39,4 +39,28 @@ export async function fetchAllCandidates() {
   return res.data;
 }
 
+/**
+ * Fetch GeoJSON boundary for a legislative district.
+ * @param {string} district  e.g. "TX-20", "SD-14", "HD-49"
+ * @param {string} type      "congressional" | "state_senate" | "state_house"
+ */
+export async function fetchDistrictBoundary(district, type) {
+  const res = await api.get("/api/district-boundary", {
+    params: { district, type },
+    timeout: 20000,
+  });
+  return res.data;
+}
+
+/**
+ * Fetch the Texas state outline GeoJSON boundary.
+ */
+export async function fetchStateOutline() {
+  const res = await api.get("/api/district-boundary", {
+    params: { type: "state_outline" },
+    timeout: 20000,
+  });
+  return res.data;
+}
+
 export default api;
