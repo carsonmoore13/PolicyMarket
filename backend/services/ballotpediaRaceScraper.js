@@ -18,6 +18,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import crypto from "crypto";
+import { getDistrictCity } from "../utils/districtCities.js";
 
 const BP_BASE = "https://ballotpedia.org";
 const DELAY_MS = 1200;
@@ -667,7 +668,7 @@ export async function discoverRaceCandidates({ state, raceType, districtNum, ski
       incumbent: null,
       filing_date: null,
       geo: makeGeo(state),
-      home_city: STATE_CAPITALS[state]?.city || `${state}`,
+      home_city: getDistrictCity(raceMeta.district, state) || STATE_CAPITALS[state]?.city || `${state}`,
       policies,
       photo: {
         url: skipPhotos ? null : (photo_url || null),

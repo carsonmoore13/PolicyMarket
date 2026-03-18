@@ -21,6 +21,8 @@ const PLACEHOLDER_URL_PATTERNS = [
   /no[-_]?photo/i,
   /placeholder/i,
   /default[-_]?avatar/i,
+  /Election_Coverage_Badge/i,
+  /Ballotpedia_Logo/i,
 ];
 
 const httpClient = axios.create({

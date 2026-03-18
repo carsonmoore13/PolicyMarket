@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import MapView from "./MapView.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
+import CandidateAvatar from "./CandidateAvatar.jsx";
 
 function getInitials(name) {
   if (!name) return "";
@@ -449,28 +450,11 @@ export default function AppLayout({
                   style={{ "--card-party-color": partyColor, "--enter-delay": `${Math.min(idx, 12) * 40}ms` }}
                   onClick={() => onSelectCandidate(c)}
                 >
-                  <div
-                    className="pm-sidebar-avatar"
-                    style={{ "--party-color": partyColor }}
-                  >
-                    {c.photo?.url && c.photo?.source !== "gravatar_fallback" ? (
-                      <img
-                        src={c.photo.url}
-                        alt={c.name || "Candidate"}
-                        className="pm-sidebar-avatar-img"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          e.currentTarget.nextSibling.style.display = "flex";
-                        }}
-                      />
-                    ) : null}
-                    <span
-                      className="pm-sidebar-avatar-initials"
-                      style={{ display: (c.photo?.url && c.photo?.source !== "gravatar_fallback") ? "none" : "flex" }}
-                    >
-                      {initials || "?"}
-                    </span>
-                  </div>
+                  <CandidateAvatar
+                    candidate={c}
+                    size={52}
+                    partyColor={partyColor}
+                  />
                   <div className="card-content">
                     <div className="candidate-name">
                       {c.name || "Unknown candidate"}

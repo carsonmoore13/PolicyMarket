@@ -1,15 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getPartyBgClass } from "../utils/partyColors.js";
-
-function getInitials(name) {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
+import CandidateAvatar from "./CandidateAvatar.jsx";
 
 export default function CandidateDetailPanel({ candidate, onClose }) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -43,14 +34,6 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
   if (!candidate) return null;
 
   const partyClass = getPartyBgClass(candidate.party);
-  const photoUrl =
-    !imgFailed &&
-    candidate.photo?.url &&
-    candidate.photo?.source !== "gravatar_fallback"
-      ? candidate.photo.url
-      : null;
-  const initials =
-    candidate.photo?.fallback_initials || getInitials(candidate.name);
   const partyColor =
     (candidate.party || "").toUpperCase() === "R"
       ? "#ef4444"
@@ -72,28 +55,12 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
         {/* Header */}
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className="pm-detail-avatar"
-              style={{ "--party-color": partyColor }}
-            >
-              {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt={candidate.name || "Candidate"}
-                  loading="lazy"
-                  width={64}
-                  height={64}
-                  className="pm-detail-avatar-img"
-                  onError={() => setImgFailed(true)}
-                />
-              ) : null}
-              <span
-                className="pm-sidebar-avatar-initials"
-                style={{ display: photoUrl ? "none" : "flex", fontSize: 22 }}
-              >
-                {initials}
-              </span>
-            </div>
+            <CandidateAvatar
+              candidate={candidate}
+              size={64}
+              partyColor={partyColor}
+              onImgError={() => setImgFailed(true)}
+            />
             <div>
               <h2 className="text-lg font-semibold text-white leading-tight">
                 {candidate.name}

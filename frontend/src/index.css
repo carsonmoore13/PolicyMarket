@@ -532,39 +532,11 @@ body {
   50%       { box-shadow: 0 0 0 4px color-mix(in srgb, var(--party-color) 20%, transparent), 0 0 24px color-mix(in srgb, var(--party-color) 70%, transparent); }
 }
 
-/* Face circle — photo or initials */
-.pm-marker-face {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #1a1a2e;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pm-marker-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  display: block;
-  border-radius: 50%;
-}
-
-.pm-marker-initials {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--party-color);
-  letter-spacing: -0.5px;
-  background: color-mix(in srgb, var(--party-color) 12%, #0f0f0f);
+/* Map marker avatar — the outer .pm-marker-ring already provides the glow,
+   so strip the avatar's own border and shadow to avoid doubling. */
+.pm-marker-face-avatar.pm-avatar {
+  border: none;
+  box-shadow: none;
 }
 
 /* Party label pill below the circle */
@@ -653,6 +625,111 @@ body {
   font-weight: 700;
   color: var(--party-color);
   letter-spacing: -0.5px;
+}
+
+/* ── Generative Avatar ─────────────────────────────────────────────── */
+/* Shared component used in sidebar cards, map markers, and detail panel */
+
+.pm-avatar {
+  position: relative;
+  width: var(--avatar-size, 52px);
+  height: var(--avatar-size, 52px);
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: var(--avatar-border, 2px) solid var(--party-color, #555);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 12px color-mix(in srgb, var(--party-color, #555) 30%, transparent);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.pm-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  border-radius: 50%;
+}
+
+.pm-avatar-fallback {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pm-avatar-initials {
+  position: relative;
+  z-index: 2;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.5),
+    0 0 12px rgba(255, 255, 255, 0.06);
+  font-feature-settings: "cv01", "cv02";
+  line-height: 1;
+}
+
+/* Subtle diagonal accent line for visual depth */
+.pm-avatar-accent {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pm-avatar-accent::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 45%;
+  width: 1px;
+  height: 140%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 40%,
+    rgba(255, 255, 255, 0.15) 60%,
+    transparent 100%
+  );
+}
+
+.pm-avatar-accent::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 55%;
+  width: 1px;
+  height: 140%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.08) 65%,
+    transparent 100%
+  );
+}
+
+/* Hover glow on fallback avatars */
+.candidate-card:hover .pm-avatar,
+.pm-candidate-marker:hover .pm-avatar {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 18px color-mix(in srgb, var(--party-color, #555) 45%, transparent);
+}
+
+/* Selected state */
+.candidate-card.bg-active .pm-avatar {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 20px color-mix(in srgb, var(--party-color, #555) 50%, transparent),
+    inset 0 0 8px rgba(255, 255, 255, 0.04);
 }
 
 /* ── District boundary overlays ────────────────────────────────────── */
