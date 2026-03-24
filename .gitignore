@@ -21,6 +21,7 @@ node_modules/
 .env.*
 !.env.example
 !frontend/.env.production
+claude_pro_key.env
 
 # Build output
 dist/
@@ -33,3 +34,8 @@ __pycache__/
 
 # Candidate photos (large binary assets)
 frontend/public/candidate_photos/
+
+# Local tool state / scratch output
+.claude/
+backend/out.txt
+backend/out_utf8.txt

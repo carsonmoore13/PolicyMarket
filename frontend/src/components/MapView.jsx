@@ -383,8 +383,10 @@ export default function MapView({
     };
   }, [level, sublevel, districts]);
 
-  // ── Spatial placement: group candidates by base position & spread radially ──
-  // Update markers when candidates change
+  // ── Marker placement: pixel-offset stacking (geographically accurate) ──
+  // Candidates at the same location get small pixel shifts to fan out like
+  // a card deck, inspired by Google Maps / Airbnb clustered pins.
+  // Hover brings a marker to front; no geo-coordinate manipulation.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -404,22 +406,9 @@ export default function MapView({
       (groupMap[key] ??= []).push(item);
     });
 
-    // Step 3: Compute final positions with radial spread within each group
+    // Step 3: Sort each group (D before R, then alpha) and assign pixel offsets
     const placed = [];
     for (const group of Object.values(groupMap)) {
-      const n = group.length;
-      if (n === 1) {
-        placed.push({ c: group[0].c, lat: group[0].baseLat, lng: group[0].baseLng });
-        continue;
-      }
-
-      const statewideCount = group.filter((g) => !g.c.district).length;
-      const isStatewideCluster = statewideCount > n / 2;
-
-      const spread = isStatewideCluster
-        ? 0.3 + n * 0.06
-        : 0.02 + n * 0.004;
-
       group.sort((a, b) => {
         const pa = (a.c.party || "").toUpperCase();
         const pb = (b.c.party || "").toUpperCase();
@@ -427,18 +416,31 @@ export default function MapView({
         return (a.c.name || "").localeCompare(b.c.name || "");
       });
 
+      const n = group.length;
       group.forEach((item, i) => {
-        const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+        // For a single marker, no offset. For groups, fan out horizontally
+        // with a slight vertical stagger to create a cascading card effect.
+        let pxOffsetX = 0;
+        let pxOffsetY = 0;
+        if (n > 1) {
+          // Center the fan: offset ranges from -(n-1)/2 to +(n-1)/2
+          const slot = i - (n - 1) / 2;
+          pxOffsetX = slot * 30; // 30px horizontal spacing per card
+          pxOffsetY = Math.abs(slot) * 6; // slight downward arc for outer cards
+        }
         placed.push({
           c: item.c,
-          lat: item.baseLat + spread * Math.sin(angle),
-          lng: item.baseLng + spread * Math.cos(angle),
+          lat: item.baseLat,
+          lng: item.baseLng,
+          pxOffsetX,
+          pxOffsetY,
+          zBase: n - i, // first in sort order renders on top
         });
       });
     }
 
-    // Step 4: Create Leaflet markers
-    placed.forEach(({ c, lat, lng }) => {
+    // Step 4: Create Leaflet markers with pixel-offset anchors
+    placed.forEach(({ c, lat, lng, pxOffsetX, pxOffsetY, zBase }) => {
       const el = document.createElement("div");
       const root = createRoot(el);
       root.render(
@@ -449,14 +451,20 @@ export default function MapView({
         />,
       );
 
+      // Shift the icon anchor to create pixel-level offset from the true position
+      const baseAnchorX = 28;
+      const baseAnchorY = 56;
       const icon = L.divIcon({
         html: el,
         className: "pm-marker-wrapper",
         iconSize: [56, 72],
-        iconAnchor: [28, 56],
+        iconAnchor: [baseAnchorX - pxOffsetX, baseAnchorY - pxOffsetY],
       });
 
-      const marker = L.marker([lat, lng], { icon }).addTo(map);
+      const marker = L.marker([lat, lng], {
+        icon,
+        zIndexOffset: zBase * 10,
+      }).addTo(map);
       markersRef.current.push(marker);
     });
   }, [candidates, onCandidateSelect, selectedCandidate]);

@@ -50,10 +50,14 @@ export default function CandidateAvatar({
   onImgError,
 }) {
   const name = candidate?.name || "";
-  const photoUrl =
+  const rawPhotoUrl =
     candidate?.photo?.url && candidate?.photo?.source !== "gravatar_fallback"
       ? candidate.photo.url
       : null;
+  // Bust browser cache for S3 images to prevent stale 403/404 from being cached
+  const photoUrl = rawPhotoUrl
+    ? `${rawPhotoUrl}${rawPhotoUrl.includes("?") ? "&" : "?"}v=4`
+    : null;
 
   const initials =
     candidate?.photo?.fallback_initials ||

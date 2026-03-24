@@ -1,7 +1,7 @@
 import { getPartyColor } from "../utils/partyColors.js";
 import CandidateAvatar from "./CandidateAvatar.jsx";
 
-const PARTY_LABEL = { D: "DEM", R: "REP", I: "IND" };
+const PARTY_LABEL = { D: "DEM", R: "REP", NP: "NP", I: "IND" };
 
 export default function CandidateMarker({ candidate, isSelected, onClick }) {
   const color = getPartyColor(candidate.party);

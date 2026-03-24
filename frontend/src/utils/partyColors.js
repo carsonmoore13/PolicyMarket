@@ -1,6 +1,7 @@
 export const PARTY_COLORS = {
   R: "#ef4444",
   D: "#3b82f6",
+  NP: "#8b5cf6",
   I: "#8b5cf6",
   IND: "#8b5cf6",
   LIB: "#f59e0b",

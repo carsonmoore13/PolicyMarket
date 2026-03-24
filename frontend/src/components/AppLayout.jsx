@@ -54,7 +54,8 @@ function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
     );
   }
 
-  // Statewide offices with no candidates
+  // Statewide / local offices with no candidates
+  const isLocal = sublevel?.startsWith("local_");
   return (
     <>
       <div className="no-election-icon">—</div>
@@ -62,8 +63,9 @@ function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
         No candidates found for {officeName}
       </p>
       <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
-        There may not be a contested race for this office in 2026,
-        or candidate data has not yet been published.
+        {isLocal
+          ? "There may not be a contested race for this office in your area, or candidate data has not yet been published."
+          : "There may not be a contested race for this office in 2026, or candidate data has not yet been published."}
       </p>
     </>
   );
@@ -109,10 +111,35 @@ function filterBySublevel(candidates, sublevel) {
       case "statewide":
         // All statewide offices (no district)
         return !dist || dist === "NONE";
+      // Local — dynamic sublevels keyed by office pattern
+      case "local_mayor":
+        return office.includes("mayor");
+      case "local_city_council":
+        return office.includes("city council") || office.includes("council district");
+      case "local_county_judge":
+        return office.includes("county judge");
       default:
         return true;
     }
   });
+}
+
+/**
+ * Derive local sublevel chips dynamically from the actual candidates present.
+ * Returns an array of { key, label, count } objects.
+ */
+function getLocalSublevels(candidates) {
+  const defs = [
+    { key: "local_mayor", label: "Mayor", test: (o) => o.includes("mayor") },
+    { key: "local_city_council", label: "City Council", test: (o) => o.includes("city council") || o.includes("council district") },
+    { key: "local_county_judge", label: "County Judge", test: (o) => o.includes("county judge") },
+  ];
+  const result = [];
+  for (const d of defs) {
+    const count = candidates.filter((c) => d.test((c.office || "").toLowerCase())).length;
+    if (count > 0) result.push({ ...d, count });
+  }
+  return result;
 }
 
 export default function AppLayout({
@@ -197,6 +224,12 @@ export default function AppLayout({
     return counts;
   }, [candidates]);
 
+  // Local sublevel chips — derived dynamically from whichever local candidates are present
+  const localSublevels = useMemo(
+    () => (level === "local" ? getLocalSublevels(candidates) : []),
+    [candidates, level],
+  );
+
   // Readable sublevel label for the list header
   const sublevelLabels = {
     us_senate: "U.S. Senate",
@@ -209,6 +242,10 @@ export default function AppLayout({
     ag_commissioner: "Agriculture Commissioner",
     land_commissioner: "Land Commissioner",
     statewide: "Statewide Offices",
+    // Local
+    local_mayor: "Mayor",
+    local_city_council: "City Council",
+    local_county_judge: "County Judge",
   };
 
   return (
@@ -367,6 +404,28 @@ export default function AppLayout({
               </button>
             </div>
           )}
+          {level === "local" && localSublevels.length > 1 && (
+            <div className="sublevel-filters">
+              <button
+                type="button"
+                className={`sublevel-chip ${sublevel === null ? "active" : ""}`}
+                onClick={() => onSublevelChange(null)}
+              >
+                All
+              </button>
+              {localSublevels.map((sl) => (
+                <button
+                  key={sl.key}
+                  type="button"
+                  className={`sublevel-chip ${sublevel === sl.key ? "active" : ""}`}
+                  onClick={() => onSublevelChange(sublevel === sl.key ? null : sl.key)}
+                >
+                  {sl.label}
+                  {sl.count > 0 && <span className="sublevel-count">{sl.count}</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="list-header">
@@ -423,7 +482,11 @@ export default function AppLayout({
               ) : sublevel ? (
                 <NoElectionNotice sublevel={sublevel} sublevelLabels={sublevelLabels} userDistricts={userDistricts} />
               ) : (
-                <p className="text-xs text-gray-500">No candidates to display.</p>
+                <p className="text-xs text-gray-500">
+                  {level === "local"
+                    ? "No local races found for your area. We currently cover Austin, Houston, Arlington, Fort Worth, Frisco, and select county races."
+                    : "No candidates to display."}
+                </p>
               )}
             </div>
           ) : (
@@ -437,11 +500,12 @@ export default function AppLayout({
               let partyLabel = "";
               if (partyCode === "D") partyLabel = "Democrat";
               else if (partyCode === "R") partyLabel = "Republican";
+              else if (partyCode === "NP") partyLabel = "Nonpartisan";
               else if (partyCode === "I" || partyCode === "IND") partyLabel = "Independent";
               else if (partyCode === "OTH") partyLabel = "Other";
               else if (partyCode) partyLabel = partyCode;
               if (!partyLabel) partyLabel = "Unknown";
-              const partyColor = partyCode === "R" ? "#ef4444" : partyCode === "D" ? "#3b82f6" : "#6b7280";
+              const partyColor = partyCode === "R" ? "#ef4444" : partyCode === "D" ? "#3b82f6" : partyCode === "NP" ? "#8b5cf6" : "#6b7280";
               return (
                 <button
                   key={c._id || `${c.name}-${c.office}-${c.district}`}

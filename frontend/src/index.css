@@ -485,6 +485,12 @@ body {
   background: transparent !important;
   border: none !important;
   overflow: visible !important;
+  transition: z-index 0s;
+}
+
+/* Bring hovered markers to the very front of the stack */
+.pm-marker-wrapper:hover {
+  z-index: 10000 !important;
 }
 
 /* Main marker container */

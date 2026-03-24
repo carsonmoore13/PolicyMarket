@@ -120,6 +120,8 @@ router.get("/", async (req, res) => {
     }
 
     const { lat, lng, districts } = resolved;
+    // Attach county to districts so candidateFilter can use it for local matching
+    if (resolved.county) districts.county = resolved.county;
     const voterState = resolved.state || state; // 2-letter abbreviation
     const returnedCity = resolved.city || city;
     const returnedState = resolved.state || state;

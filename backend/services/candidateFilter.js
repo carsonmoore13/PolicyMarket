@@ -8,6 +8,8 @@
  */
 
 const ALLOWED_PARTIES = new Set(["D", "R"]);
+// Local/city races in Texas are officially nonpartisan
+const ALLOWED_LOCAL_PARTIES = new Set(["D", "R", "NP"]);
 
 // Map full jurisdiction/state names → 2-letter abbreviation.
 const STATE_ABBR_FROM_JURISDICTION = {
@@ -45,7 +47,9 @@ function getCandidateState(c) {
 export function isAllowedCandidate(c) {
   if (!c || !c.name) return false;
   const party = (c.party || "").toString().trim().toUpperCase();
-  if (!ALLOWED_PARTIES.has(party)) return false;
+  const level = (c.office_level || "").toLowerCase();
+  const allowed = (level === "city" || level === "local") ? ALLOWED_LOCAL_PARTIES : ALLOWED_PARTIES;
+  if (!allowed.has(party)) return false;
   const name = (c.name || "").trim();
   if (name.length < 4) return false;
   if (/^\d/.test(name)) return false;
@@ -107,16 +111,30 @@ export function filterCandidates(candidates, districts, level, voterState = null
     return false;
   };
 
-  // Local: city/council/county races matched by voter's locality.
+  // Local: city/council/county races matched by voter's locality or county.
   const isLocal = (c) => {
     if (c.office_level !== "local" && c.office_level !== "city") return false;
-    if (c.jurisdiction && districts.locality) {
-      return (
-        c.jurisdiction.toLowerCase().includes(districts.locality.toLowerCase()) ||
-        districts.locality.toLowerCase().includes(c.jurisdiction.toLowerCase())
-      );
+    const cJuris = (c.jurisdiction || "").toLowerCase();
+    const cOffice = (c.office || "").toLowerCase();
+    const locality = (districts.locality || "").toLowerCase();
+    const county = (districts.county || "").toLowerCase();
+
+    // Match by city/locality
+    if (cJuris && locality) {
+      if (cJuris.includes(locality) || locality.includes(cJuris)) return true;
     }
-    return true;
+
+    // Match by county (e.g. "Montgomery County" matches "Bexar County Judge")
+    if (county) {
+      // Extract county name without "County" suffix for matching
+      const countyName = county.replace(/\s*county\s*$/i, "").trim();
+      if (countyName && (cJuris.includes(countyName) || cOffice.includes(countyName))) return true;
+    }
+
+    // No jurisdiction on candidate and no locality available → include
+    if (!cJuris && !locality) return true;
+
+    return false;
   };
 
   if (level === "federal") return pool.filter(isFederal);
