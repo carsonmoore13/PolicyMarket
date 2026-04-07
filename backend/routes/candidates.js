@@ -138,7 +138,7 @@ router.get("/", async (req, res) => {
       }
 
       const coll = getCandidatesCollection();
-      const all = await coll.find({}).toArray();
+      const all = await coll.find({ state: voterState }).toArray();
       const filtered = filterCandidates(all, districts, lvl, voterState);
 
       // Trigger discovery in background if this tab is empty
@@ -161,9 +161,9 @@ router.get("/", async (req, res) => {
       return res.json(cached.response);
     }
 
-    // Fetch all candidates and filter for each level.
+    // Fetch candidates for the voter's state (avoids loading the full collection).
     const coll = getCandidatesCollection();
-    const all = await coll.find({}).toArray();
+    const all = await coll.find({ state: voterState }).toArray();
 
     const federal = filterCandidates(all, districts, "federal", voterState);
     const state_candidates = filterCandidates(all, districts, "state", voterState);

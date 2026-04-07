@@ -93,8 +93,21 @@ const HOUSE_SEATS = {
 
 function buildDoc({ name, slug, party, districtLabel, raceType, state, bio, ballotpedia_url, now }) {
   const stateFull = STATE_FULL[state] || state;
-  const OFFICE = { us_senate: "U.S. Senate", us_house: "U.S. House", state_senate: "State Senate", state_house: "State House" };
-  const LEVEL  = { us_senate: "federal", us_house: "federal", state_senate: "state", state_house: "state" };
+  const OFFICE = {
+    governor: "Governor", lt_governor: "Lieutenant Governor",
+    attorney_general: "Attorney General", comptroller: "Comptroller",
+    land_commissioner: "Land Commissioner", ag_commissioner: "Agriculture Commissioner",
+    railroad_commissioner: "Railroad Commissioner",
+    us_senate: "U.S. Senate", us_house: "U.S. House",
+    state_senate: "State Senate", state_house: "State House",
+  };
+  const LEVEL = {
+    governor: "state", lt_governor: "state", attorney_general: "state",
+    comptroller: "state", land_commissioner: "state", ag_commissioner: "state",
+    railroad_commissioner: "state",
+    us_senate: "federal", us_house: "federal",
+    state_senate: "state", state_house: "state",
+  };
   const officeLabel = OFFICE[raceType] + (districtLabel ? ` ${districtLabel}` : "");
   const policies = bioToBullets(bio, party);
 
@@ -517,6 +530,36 @@ async function seedStateLegislative(state, raceType, stats, now) {
   }
 }
 
+// ─── Statewide Executive Offices ────────────────────────────────────────────
+
+import { discoverRaceCandidates } from "./ballotpediaRaceScraper.js";
+
+const STATEWIDE_EXEC_RACES = [
+  "governor", "lt_governor", "attorney_general",
+  "comptroller", "land_commissioner", "ag_commissioner", "railroad_commissioner",
+];
+
+async function seedStatewideExec(state, stats, now) {
+  console.log(`[Seeder] Statewide executive offices for ${state}...`);
+  for (const raceType of STATEWIDE_EXEC_RACES) {
+    try {
+      const candidates = await discoverRaceCandidates({ state, raceType, districtNum: null, skipPhotos: true });
+      if (candidates.length) {
+        stats.races++;
+        for (const c of candidates) {
+          const saved = await upsertDoc(c);
+          stats.total++; if (saved) stats.saved++;
+          if (saved) console.log(`  [Seeder] + ${c.name} (${c.party}) — ${c.office}`);
+        }
+      } else {
+        console.log(`  [Seeder] ${raceType}: no candidates found`);
+      }
+    } catch (err) {
+      console.warn(`  [Seeder] ${raceType} error: ${err.message}`);
+    }
+  }
+}
+
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function seedStateRaces(state) {
@@ -531,6 +574,7 @@ export async function seedStateRaces(state) {
   const now = new Date();
 
   try {
+    await seedStatewideExec(state, stats, now);
     await seedUsSenate(state, stats, now);
     await seedUsHouse(state, stats, now);
     await seedStateLegislative(state, "state_senate", stats, now);

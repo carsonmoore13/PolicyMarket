@@ -24,6 +24,22 @@ import { seedStateRaces, isSeedingInProgress } from "./stateFullSeeder.js";
 // don't trigger duplicate scraping work.
 const inFlight = new Set();
 
+// Negative cache: remember races that returned 0 results so we don't
+// hammer Ballotpedia with repeated 404s on every user request.
+// Entries expire after 6 hours.
+const NEG_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const negativeCache = new Map();
+
+function isNegCached(key) {
+  const entry = negativeCache.get(key);
+  if (!entry) return false;
+  if (Date.now() - entry > NEG_CACHE_TTL_MS) {
+    negativeCache.delete(key);
+    return false;
+  }
+  return true;
+}
+
 /**
  * Parse a district string into { raceType, districtNum }.
  *   "TX-37"  → { raceType: "us_house",    districtNum: 37 }
@@ -50,6 +66,27 @@ function hasRace(allCandidates, raceType, state, district) {
     const cState = c.state || c.district_zip_map?.state;
     if (cState !== state) return false;
 
+    if (raceType === "governor") {
+      return /^governor$/i.test(c.office) && c.office_level === "state";
+    }
+    if (raceType === "lt_governor") {
+      return /lieutenant governor/i.test(c.office) && c.office_level === "state";
+    }
+    if (raceType === "attorney_general") {
+      return /attorney general/i.test(c.office) && c.office_level === "state";
+    }
+    if (raceType === "comptroller") {
+      return /comptroller/i.test(c.office) && c.office_level === "state";
+    }
+    if (raceType === "land_commissioner") {
+      return /land commissioner/i.test(c.office) && c.office_level === "state";
+    }
+    if (raceType === "ag_commissioner") {
+      return /agriculture commissioner/i.test(c.office) && c.office_level === "state";
+    }
+    if (raceType === "railroad_commissioner") {
+      return /railroad commissioner/i.test(c.office) && c.office_level === "state";
+    }
     if (raceType === "us_senate") {
       return /u\.?s\.?\s+senate/i.test(c.office) && c.office_level === "federal";
     }
@@ -126,6 +163,16 @@ export function triggerDiscovery(districts, voterState, allCandidates) {
   // ── Per-district fallback: state has data but specific districts missing ──
   const tasks = [];
 
+  const execRaces = [
+    "governor", "lt_governor", "attorney_general", "comptroller",
+    "land_commissioner", "ag_commissioner", "railroad_commissioner",
+  ];
+  for (const rt of execRaces) {
+    if (!hasRace(allCandidates, rt, voterState, null)) {
+      tasks.push({ state: voterState, raceType: rt, districtNum: null, skipPhotos: true });
+    }
+  }
+
   if (!hasRace(allCandidates, "us_senate", voterState, null)) {
     tasks.push({ state: voterState, raceType: "us_senate", districtNum: null, skipPhotos: true });
   }
@@ -156,15 +203,21 @@ export function triggerDiscovery(districts, voterState, allCandidates) {
   (async () => {
     for (const task of tasks) {
       const key = `${task.state}|${task.raceType}|${task.districtNum}`;
-      if (inFlight.has(key)) continue;
+      if (inFlight.has(key) || isNegCached(key)) continue;
       inFlight.add(key);
       try {
         console.log(`[RaceDiscovery] Starting: ${key}`);
         const candidates = await discoverRaceCandidates(task);
         await saveCandidates(candidates);
-        console.log(`[RaceDiscovery] Done: ${key} — ${candidates.length} saved`);
+        if (candidates.length === 0) {
+          negativeCache.set(key, Date.now());
+          console.log(`[RaceDiscovery] Done: ${key} — 0 found (neg-cached for 6h)`);
+        } else {
+          console.log(`[RaceDiscovery] Done: ${key} — ${candidates.length} saved`);
+        }
       } catch (err) {
-        console.error(`[RaceDiscovery] Error ${key}: ${err.message}`);
+        negativeCache.set(key, Date.now());
+        console.error(`[RaceDiscovery] Error ${key}: ${err.message} (neg-cached for 6h)`);
       } finally {
         inFlight.delete(key);
       }

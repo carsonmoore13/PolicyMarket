@@ -185,6 +185,28 @@ function buildRaceUrls(state, raceType, districtNum) {
   const sn = STATE_NAMES[state];
   if (!sn) return [];
 
+  if (raceType === "governor") {
+    return [`${BP_BASE}/${sn}_gubernatorial_election,_2026`];
+  }
+  if (raceType === "lt_governor") {
+    return [`${BP_BASE}/${sn}_lieutenant_gubernatorial_election,_2026`];
+  }
+  if (raceType === "attorney_general") {
+    return [`${BP_BASE}/${sn}_Attorney_General_election,_2026`];
+  }
+  if (raceType === "comptroller") {
+    return [`${BP_BASE}/${sn}_Comptroller_of_Public_Accounts_election,_2026`];
+  }
+  if (raceType === "land_commissioner") {
+    return [`${BP_BASE}/${sn}_Commissioner_of_the_General_Land_Office_election,_2026`];
+  }
+  if (raceType === "ag_commissioner") {
+    return [`${BP_BASE}/${sn}_Agriculture_Commissioner_election,_2026`];
+  }
+  if (raceType === "railroad_commissioner") {
+    return [`${BP_BASE}/${sn}_Railroad_Commissioner_election,_2026`];
+  }
+
   if (raceType === "us_senate") {
     return [
       `${BP_BASE}/United_States_Senate_election_in_${sn},_2026`,
@@ -638,10 +660,17 @@ export async function discoverRaceCandidates({ state, raceType, districtNum, ski
   // Build race metadata
   const stateFull = STATE_FULL[state] || state;
   const raceMeta = {
-    us_senate:    { office: "U.S. Senate",   office_level: "federal", district: null },
-    us_house:     { office: "U.S. House",    office_level: "federal", district: `${state}-${districtNum}` },
-    state_senate: { office: "State Senate",  office_level: "state",   district: `SD-${districtNum}` },
-    state_house:  { office: "State House",   office_level: "state",   district: `HD-${districtNum}` },
+    governor:              { office: "Governor",              office_level: "state",   district: null },
+    lt_governor:           { office: "Lieutenant Governor",   office_level: "state",   district: null },
+    attorney_general:      { office: "Attorney General",      office_level: "state",   district: null },
+    comptroller:           { office: "Comptroller",           office_level: "state",   district: null },
+    land_commissioner:     { office: "Land Commissioner",     office_level: "state",   district: null },
+    ag_commissioner:       { office: "Agriculture Commissioner", office_level: "state", district: null },
+    railroad_commissioner: { office: "Railroad Commissioner", office_level: "state",   district: null },
+    us_senate:             { office: "U.S. Senate",           office_level: "federal", district: null },
+    us_house:              { office: "U.S. House",            office_level: "federal", district: `${state}-${districtNum}` },
+    state_senate:          { office: "State Senate",          office_level: "state",   district: `SD-${districtNum}` },
+    state_house:           { office: "State House",           office_level: "state",   district: `HD-${districtNum}` },
   }[raceType];
 
   if (!raceMeta) return [];
