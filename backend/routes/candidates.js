@@ -1,4 +1,7 @@
 import express from "express";
+import { ObjectId } from "mongodb";
+import axios from "axios";
+import * as cheerio from "cheerio";
 import { getCandidatesCollection, getApiCacheCollection } from "../db.js";
 import { resolveAddress, normalizeAddressKey } from "../services/addressResolver.js";
 import { filterCandidates, isAllowedCandidate } from "../services/candidateFilter.js";
@@ -69,16 +72,102 @@ function serializeCandidate(c) {
 
 const router = express.Router();
 
-// GET /api/candidates/all  — returns the full unfiltered candidate set
+// GET /api/candidates/all  — returns aggregate counts by office_level (not full docs)
 router.get("/all", async (_req, res) => {
   try {
     const coll = getCandidatesCollection();
-    const all = await coll.find({}).toArray();
-    const filtered = all.filter(isAllowedCandidate);
-    res.json(filtered);
+    const pipeline = [
+      { $group: { _id: "$office_level", count: { $sum: 1 } } },
+    ];
+    const results = await coll.aggregate(pipeline).toArray();
+    const counts = { federal: 0, state: 0, local: 0, total: 0 };
+    for (const r of results) {
+      const lvl = (r._id || "").toLowerCase();
+      if (counts[lvl] !== undefined) counts[lvl] = r.count;
+      counts.total += r.count;
+    }
+    res.json(counts);
   } catch (err) {
-    console.error("Failed to fetch all candidates", err.message);
+    console.error("Failed to fetch candidate counts", err.message);
     res.status(500).json({ error: "Failed to fetch candidates." });
+  }
+});
+
+// ─── Ballotpedia bio scraper (on-demand, cached in DB) ──────────────────────
+
+function scrapeBio(html) {
+  const $ = cheerio.load(html);
+  const paragraphs = [];
+
+  $(".mw-parser-output > p").each((_, el) => {
+    const text = $(el)
+      .text()
+      .replace(/\[\d+\]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (
+      text.length > 60 &&
+      !/jQuery|padding|font-size|tusa-race|\.ballot-measure|\.endorsements/i.test(text)
+    ) {
+      paragraphs.push(text);
+    }
+  });
+
+  return paragraphs.slice(0, 6).join("\n\n");
+}
+
+// GET /api/candidates/:id/bio
+router.get("/:id/bio", async (req, res) => {
+  try {
+    const coll = getCandidatesCollection();
+    let oid;
+    try { oid = new ObjectId(req.params.id); } catch { 
+      return res.status(400).json({ error: "Invalid candidate ID" });
+    }
+
+    const doc = await coll.findOne({ _id: oid });
+    if (!doc) return res.status(404).json({ error: "Candidate not found" });
+
+    // Return cached bio if we already have it
+    if (doc.bio && doc.bio.length > 50) {
+      return res.json({ bio: doc.bio, source: doc.bio_source || "ballotpedia", cached: true });
+    }
+
+    if (!doc.source_url) {
+      return res.json({ bio: null, source: null, error: "No Ballotpedia URL for this candidate" });
+    }
+
+    // Scrape bio from Ballotpedia
+    let html;
+    try {
+      const resp = await axios.get(doc.source_url, {
+        timeout: 12000,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; PolicyMarket/1.0; +https://policymarket.app)",
+          Accept: "text/html",
+        },
+        responseType: "text",
+      });
+      html = resp.data;
+    } catch {
+      return res.json({ bio: null, source: null, error: "Failed to fetch Ballotpedia page" });
+    }
+
+    const bio = scrapeBio(html);
+    if (!bio || bio.length < 30) {
+      return res.json({ bio: null, source: null, error: "No bio found on Ballotpedia" });
+    }
+
+    // Cache in DB so we never re-scrape
+    await coll.updateOne(
+      { _id: oid },
+      { $set: { bio, bio_source: "ballotpedia", bio_fetched: new Date() } },
+    );
+
+    return res.json({ bio, source: "ballotpedia", cached: false });
+  } catch (err) {
+    console.error("Bio fetch failed", err.message);
+    return res.status(500).json({ error: "Failed to fetch bio" });
   }
 });
 

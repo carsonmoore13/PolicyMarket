@@ -39,6 +39,11 @@ export async function fetchAllCandidates() {
   return res.data;
 }
 
+export async function fetchCandidateBio(candidateId) {
+  const res = await api.get(`/api/candidates/${candidateId}/bio`, { timeout: 15000 });
+  return res.data;
+}
+
 /**
  * Fetch GeoJSON boundary for a legislative district.
  * @param {string} district  e.g. "TX-20", "SD-14", "HD-49"

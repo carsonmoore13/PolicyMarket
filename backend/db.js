@@ -10,6 +10,8 @@ async function ensureIndexes() {
   const zipCache = database.collection("zip_district_cache");
   const apiCache = database.collection("api_cache");
 
+  await candidates.createIndex({ state: 1 });
+  await candidates.createIndex({ state: 1, office_level: 1 });
   await candidates.createIndex({ zip_codes: 1 });
   await candidates.createIndex({ "photo.source": 1 });
   await candidates.createIndex({ "photo.verified": 1 });

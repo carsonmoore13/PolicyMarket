@@ -3,6 +3,7 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import path from "path";
 import { fileURLToPath } from "url";
 import { PORT, MONGO_URI } from "./config.js";
@@ -16,6 +17,7 @@ import boundariesRouter from "./routes/boundaries.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+app.use(compression());
 
 app.use(
   cors({

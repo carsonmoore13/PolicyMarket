@@ -22,8 +22,9 @@ dotenv.config();
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { MongoClient } from "mongodb";
+import Anthropic from "@anthropic-ai/sdk";
 
-const DELAY_MS = 1200;
+const DELAY_MS = 300;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ─── Ballotpedia page fetcher ───────────────────────────────────────────────
@@ -468,6 +469,79 @@ function cleanBullets(bullets) {
     .filter((b) => b.length > 15 && b.length < 200);
 }
 
+// ─── Claude Haiku summarization ──────────────────────────────────────────────
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+const TOKEN_HARD_CAP = 5_000_000;
+const COST_HARD_CAP_CENTS = 500; // $5.00
+// Haiku pricing: $0.80/M input, $4.00/M output
+const INPUT_COST_PER_M = 0.80;
+const OUTPUT_COST_PER_M = 4.00;
+
+let totalInputTokens = 0;
+let totalOutputTokens = 0;
+
+function estimatedCostCents() {
+  return (totalInputTokens / 1_000_000) * INPUT_COST_PER_M * 100
+       + (totalOutputTokens / 1_000_000) * OUTPUT_COST_PER_M * 100;
+}
+
+function isOverBudget() {
+  return (totalInputTokens + totalOutputTokens) >= TOKEN_HARD_CAP
+      || estimatedCostCents() >= COST_HARD_CAP_CENTS;
+}
+
+let anthropic = null;
+function getAnthropicClient() {
+  if (!anthropic && ANTHROPIC_API_KEY) {
+    anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+  }
+  return anthropic;
+}
+
+async function claudeSummarize(rawText, candidateName, office) {
+  const client = getAnthropicClient();
+  if (!client) return null;
+  if (isOverBudget()) {
+    console.log(`  [Claude] Budget cap reached ($${(estimatedCostCents()/100).toFixed(2)}, ${totalInputTokens+totalOutputTokens} tokens) — skipping`);
+    return null;
+  }
+
+  const prompt = `Given this candidate's campaign/bio text, extract 5-8 concise policy bullet points.
+Each bullet should be a specific, actionable policy position (not biographical).
+Format: Return ONLY a JSON array of strings, no other text.
+Example: ["Lower property taxes by 10%", "Ban sanctuary cities", "Expand rural broadband"]
+
+Candidate: ${candidateName} (${office})
+Text:
+${rawText.slice(0, 4000)}`;
+
+  try {
+    const response = await client.messages.create({
+      model: HAIKU_MODEL,
+      max_tokens: 512,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const usage = response.usage || {};
+    totalInputTokens += usage.input_tokens || 0;
+    totalOutputTokens += usage.output_tokens || 0;
+
+    const text = response.content?.[0]?.text || "";
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return null;
+
+    const bullets = JSON.parse(match[0]);
+    if (!Array.isArray(bullets) || bullets.length < 2) return null;
+
+    return bullets.filter(b => typeof b === "string" && b.length > 10 && b.length < 200).slice(0, 8);
+  } catch (err) {
+    console.log(`  [Claude] API error: ${err.message}`);
+    return null;
+  }
+}
+
 // ─── Main pipeline ──────────────────────────────────────────────────────────
 
 async function enrichCandidate(doc) {
@@ -488,11 +562,26 @@ async function enrichCandidate(doc) {
 
   if (!rawText || rawText.length < 50) return null;
 
+  // Try regex parsing first
   const rawBullets = textToBullets(rawText);
   const bullets = cleanBullets(rawBullets);
-  if (bullets.length < 2) return null;
 
-  return { policies: bullets, source };
+  // If regex produced good results, use them
+  if (bullets.length >= 3) {
+    return { policies: bullets, source };
+  }
+
+  // Otherwise, use Claude Haiku for better extraction
+  if (ANTHROPIC_API_KEY && !isOverBudget()) {
+    const claudeBullets = await claudeSummarize(rawText, doc.name, doc.office);
+    if (claudeBullets && claudeBullets.length >= 2) {
+      return { policies: claudeBullets, source: "claude_summarized" };
+    }
+  }
+
+  // Fall back to whatever regex produced (even if < 3)
+  if (bullets.length >= 2) return { policies: bullets, source };
+  return null;
 }
 
 // ─── CLI ────────────────────────────────────────────────────────────────────
@@ -557,27 +646,34 @@ if (!candidates.length) {
   process.exit(0);
 }
 
-console.log(`\nProcessing ${candidates.length} candidates...\n`);
+// Filter out already-summarized candidates upfront
+const alreadyDone = candidates.filter(c => c.policies_source === "claude_summarized").length;
+candidates = candidates.filter(c => c.policies_source !== "claude_summarized");
+
+console.log(`\nProcessing ${candidates.length} candidates (${alreadyDone} already done, skipped)...\n`);
 
 let enriched = 0;
-let skipped = 0;
+let skipped = alreadyDone;
 let failed = 0;
+let claudeUsed = 0;
+const CONCURRENCY = 8;
 
-for (const doc of candidates) {
-  process.stdout.write(`  ${doc.name} (${doc.party}) — ${doc.office}... `);
+async function processOne(doc, idx) {
+  if (isOverBudget()) return "budget";
 
+  const label = `[${idx + 1}/${candidates.length}] ${doc.name} (${doc.party}) — ${doc.office}`;
   const result = await enrichCandidate(doc);
 
   if (!result) {
-    console.log("NO DATA");
+    console.log(`  ${label}... NO DATA`);
     failed++;
-    continue;
+    return;
   }
 
   if (result.policies.length < 2) {
-    console.log(`SKIP (only ${result.policies.length} bullets)`);
+    console.log(`  ${label}... SKIP (${result.policies.length} bullets)`);
     skipped++;
-    continue;
+    return;
   }
 
   await coll.updateOne(
@@ -591,13 +687,29 @@ for (const doc of candidates) {
     },
   );
 
-  console.log(`OK (${result.policies.length} bullets from ${result.source})`);
-  result.policies.forEach((p) => console.log(`    • ${p}`));
+  if (result.source === "claude_summarized") claudeUsed++;
   enriched++;
+  console.log(`  ${label}... OK (${result.policies.length} from ${result.source})`);
 }
 
-console.log(
-  `\nDone. Enriched: ${enriched}, Skipped: ${skipped}, Failed: ${failed}`,
-);
+// Concurrent worker pool
+let cursor = 0;
+async function worker() {
+  while (cursor < candidates.length) {
+    const idx = cursor++;
+    if (isOverBudget()) break;
+    await processOne(candidates[idx], idx);
+  }
+}
+
+const workers = Array.from({ length: CONCURRENCY }, () => worker());
+await Promise.all(workers);
+
+const costStr = (estimatedCostCents() / 100).toFixed(4);
+console.log(`\n═══ RESULTS ═══`);
+console.log(`  Enriched: ${enriched}, Skipped: ${skipped}, Failed: ${failed}`);
+console.log(`  Claude calls: ${claudeUsed}`);
+console.log(`  Tokens — input: ${totalInputTokens.toLocaleString()}, output: ${totalOutputTokens.toLocaleString()}`);
+console.log(`  Estimated cost: $${costStr}`);
 
 await client.close();
