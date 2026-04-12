@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MapView from "./MapView.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import CandidateAvatar from "./CandidateAvatar.jsx";
@@ -109,15 +109,26 @@ function filterBySublevel(candidates, sublevel) {
       case "land_commissioner":
         return office.includes("land commissioner");
       case "statewide":
-        // All statewide offices (no district)
         return !dist || dist === "NONE";
-      // Local — dynamic sublevels keyed by office pattern
+      // Local categories
+      case "local_county_judge":
+        return office.includes("county judge") && !office.includes("court");
+      case "local_commissioner":
+        return office.includes("commissioner") && !office.includes("railroad") && !office.includes("agriculture") && !office.includes("land");
+      case "local_jp":
+        return office.includes("justice of the peace");
+      case "local_clerk":
+        return office.includes("clerk") || office.includes("treasurer");
+      case "local_courts":
+        return (office.includes("court") || office.includes("district attorney") || office.includes("judicial")) && !office.includes("county judge");
+      case "local_school_board":
+        return office.includes("school") || office.includes("isd") || office.includes("trustee");
+      case "local_township":
+        return office.includes("township") || office.includes("board of director");
       case "local_mayor":
         return office.includes("mayor");
       case "local_city_council":
         return office.includes("city council") || office.includes("council district");
-      case "local_county_judge":
-        return office.includes("county judge");
       default:
         return true;
     }
@@ -130,9 +141,15 @@ function filterBySublevel(candidates, sublevel) {
  */
 function getLocalSublevels(candidates) {
   const defs = [
+    { key: "local_county_judge", label: "County Judge", test: (o) => o.includes("county judge") && !o.includes("court") },
+    { key: "local_commissioner", label: "Commissioners", test: (o) => o.includes("commissioner") && !o.includes("railroad") && !o.includes("agriculture") && !o.includes("land") },
+    { key: "local_jp", label: "Justice of Peace", test: (o) => o.includes("justice of the peace") },
+    { key: "local_clerk", label: "Clerks & Treasurer", test: (o) => o.includes("clerk") || o.includes("treasurer") },
+    { key: "local_courts", label: "Courts & DA", test: (o) => (o.includes("court") || o.includes("district attorney") || o.includes("judicial")) && !o.includes("county judge") },
+    { key: "local_school_board", label: "School Board", test: (o) => o.includes("school") || o.includes("isd") || o.includes("trustee") },
+    { key: "local_township", label: "Township", test: (o) => o.includes("township") || o.includes("board of director") },
     { key: "local_mayor", label: "Mayor", test: (o) => o.includes("mayor") },
     { key: "local_city_council", label: "City Council", test: (o) => o.includes("city council") || o.includes("council district") },
-    { key: "local_county_judge", label: "County Judge", test: (o) => o.includes("county judge") },
   ];
   const result = [];
   for (const d of defs) {
@@ -217,6 +234,8 @@ export default function AppLayout({
       "us_senate", "us_house",
       "governor", "lt_governor", "attorney_general", "ag_commissioner", "land_commissioner",
       "state_senate", "state_house",
+      "local_county_judge", "local_commissioner", "local_jp", "local_clerk",
+      "local_courts", "local_school_board", "local_township", "local_mayor", "local_city_council",
     ];
     for (const sl of sublevels) {
       counts[sl] = filterBySublevel(candidates, sl).length;
@@ -229,6 +248,13 @@ export default function AppLayout({
     () => (level === "local" ? getLocalSublevels(candidates) : []),
     [candidates, level],
   );
+
+  // Auto-select first local category when entering the local tab
+  useEffect(() => {
+    if (level === "local" && !sublevel && localSublevels.length > 0 && candidates.length > 0) {
+      onSublevelChange(localSublevels[0].key);
+    }
+  }, [level, sublevel, localSublevels, candidates.length]);
 
   // Readable sublevel label for the list header
   const sublevelLabels = {
@@ -243,9 +269,15 @@ export default function AppLayout({
     land_commissioner: "Land Commissioner",
     statewide: "Statewide Offices",
     // Local
+    local_county_judge: "County Judge",
+    local_commissioner: "County Commissioners",
+    local_jp: "Justice of the Peace",
+    local_clerk: "Clerks & Treasurer",
+    local_courts: "Courts & District Attorney",
+    local_school_board: "School Board",
+    local_township: "Township Board",
     local_mayor: "Mayor",
     local_city_council: "City Council",
-    local_county_judge: "County Judge",
   };
 
   return (
@@ -404,15 +436,8 @@ export default function AppLayout({
               </button>
             </div>
           )}
-          {level === "local" && localSublevels.length > 1 && (
+          {level === "local" && localSublevels.length > 0 && (
             <div className="sublevel-filters">
-              <button
-                type="button"
-                className={`sublevel-chip ${sublevel === null ? "active" : ""}`}
-                onClick={() => onSublevelChange(null)}
-              >
-                All
-              </button>
               {localSublevels.map((sl) => (
                 <button
                   key={sl.key}
