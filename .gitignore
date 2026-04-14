@@ -16,12 +16,19 @@ npm-debug.log*
 # Dependencies
 node_modules/
 
-# Environment secrets
+# Environment secrets (never commit real keys; only *.example templates)
 .env
 .env.*
 !.env.example
 !frontend/.env.production
 claude_pro_key.env
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+*.pem
+*.key
+secrets/
 
 # Build output
 dist/
