@@ -62,11 +62,93 @@ function normalizeDistrict(d) {
   return d.replace(/(\D+)0*(\d+)/, (_, prefix, num) => `${prefix}${parseInt(num, 10)}`);
 }
 
+/** True for K–12 ISD / school-board style races (not township or generic county rows). */
+function isSchoolDistrictElectionCandidate(c) {
+  const o = (c.office || "").toLowerCase();
+  const j = (c.jurisdiction || "").toLowerCase();
+  if (/township board|board of director/.test(o) && !/\bisd\b|school board|independent school/.test(o)) {
+    return false;
+  }
+  const blob = `${o} ${j}`;
+  return (
+    /\bindependent school district\b/.test(blob) ||
+    /\bisd\b/.test(blob) ||
+    /school board/.test(blob) ||
+    (/school/.test(blob) && /trustee|board/.test(blob))
+  );
+}
+
+/** Substrings that identify the voter's ISD in candidate office/jurisdiction text. */
+function schoolDistrictMatchSlugs(name) {
+  if (!name || typeof name !== "string") return [];
+  const raw = name.trim().toLowerCase();
+  const out = new Set();
+  const add = (s) => {
+    const t = (s || "").trim().toLowerCase();
+    if (t.length >= 3) out.add(t);
+  };
+  add(raw);
+  const base = raw.replace(/\s+independent school district\s*$/i, "").trim();
+  add(base);
+  if (base && base !== raw) add(`${base} isd`);
+  return [...out];
+}
+
+function candidateMatchesSchoolDistrict(c, voterSdName) {
+  const blob = `${c.office || ""} ${c.jurisdiction || ""}`.toLowerCase().replace(/\s+/g, " ");
+  return schoolDistrictMatchSlugs(voterSdName).some((slug) => blob.includes(slug));
+}
+
+/** Mayor / executive mayor races (not lieutenant governor, vice mayor as primary label). */
+function isMayoralElectionCandidate(c) {
+  const o = (c.office || "").toLowerCase();
+  if (!/mayor/.test(o)) return false;
+  if (/lieutenant governor/.test(o)) return false;
+  if (/vice mayor|deputy mayor/.test(o)) return false;
+  return true;
+}
+
+/** City council / council district races (not county commission, township, or school board). */
+function isCityCouncilElectionCandidate(c) {
+  const o = (c.office || "").toLowerCase();
+  const j = (c.jurisdiction || "").toLowerCase();
+  const blob = `${o} ${j}`;
+  if (/\bcounty commissioner\b|\bcommissioners court\b/.test(blob)) return false;
+  if (/school board|\bindependent school district\b|\bisd\b/.test(blob)) return false;
+  if (/township|board of director/.test(blob) && !/city council/.test(blob)) return false;
+  return (
+    /city council/.test(blob) ||
+    /council member/.test(blob) ||
+    /\bcouncil district\b/.test(o) ||
+    /\balderm(a|e)n\b/.test(o)
+  );
+}
+
+function localityMatchSlugs(rawLocality) {
+  if (!rawLocality || typeof rawLocality !== "string") return [];
+  const norm = rawLocality.trim().toLowerCase().replace(/\s+/g, " ");
+  const out = new Set();
+  const add = (s) => {
+    const t = (s || "").trim().toLowerCase();
+    if (t.length >= 3) out.add(t);
+  };
+  add(norm);
+  const noCity = norm.replace(/\s+city\s*$/i, "").trim();
+  if (noCity && noCity !== norm) add(noCity);
+  return [...out];
+}
+
+function candidateMatchesVoterLocality(c, voterLocality) {
+  const blob = `${c.office || ""} ${c.jurisdiction || ""}`.toLowerCase().replace(/\s+/g, " ");
+  return localityMatchSlugs(voterLocality).some((slug) => blob.includes(slug));
+}
+
 /**
  * Filter candidates by level for a specific voter.
  *
  * @param {object[]} candidates  - full candidate array from MongoDB
- * @param {object}   districts   - { congressional, state_senate, state_house, locality }
+ * @param {object}   districts   - { congressional, state_senate, state_house, locality, county?, school_district? }
+ *                                locality geocoder city is used to zone mayoral and city-council races.
  * @param {string}   level       - "federal" | "state" | "local"
  * @param {string}   [voterState] - 2-letter state abbreviation from the address resolver (e.g. "TX")
  */
@@ -114,6 +196,25 @@ export function filterCandidates(candidates, districts, level, voterState = null
   // Local: city/council/county races matched by voter's locality or county.
   const isLocal = (c) => {
     if (c.office_level !== "local" && c.office_level !== "city") return false;
+
+    // School-board / ISD races: zone to Census Unified School District only (not whole county).
+    if (isSchoolDistrictElectionCandidate(c)) {
+      if (!districts.school_district) return false;
+      return candidateMatchesSchoolDistrict(c, districts.school_district);
+    }
+
+    // Mayoral races: zone to geocoder locality only (avoid other cities in the same county).
+    if (isMayoralElectionCandidate(c)) {
+      if (!districts.locality) return false;
+      return candidateMatchesVoterLocality(c, districts.locality);
+    }
+
+    // City council: same zoning as mayor (municipal legislature for the voter's place name).
+    if (isCityCouncilElectionCandidate(c)) {
+      if (!districts.locality) return false;
+      return candidateMatchesVoterLocality(c, districts.locality);
+    }
+
     const cJuris = (c.jurisdiction || "").toLowerCase();
     const cOffice = (c.office || "").toLowerCase();
     const locality = (districts.locality || "").toLowerCase();

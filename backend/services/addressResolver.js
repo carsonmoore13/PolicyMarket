@@ -97,6 +97,10 @@ async function censusGeocode({ street, city, state, zip }) {
   const countyRaw = findGeoLayer(/^Counties$/i);
   const county = countyRaw?.NAME ?? null;
 
+  // Unified K–12 district (Census TIGER); used to zone school-board races to the voter's ISD.
+  const schoolRaw = findGeoLayer(/^Unified School Districts$/i);
+  const school_district = schoolRaw?.NAME ?? schoolRaw?.BASENAME ?? null;
+
   return {
     lat,
     lng,
@@ -106,6 +110,7 @@ async function censusGeocode({ street, city, state, zip }) {
     congressional,
     state_senate,
     state_house,
+    school_district,
   };
 }
 
@@ -191,7 +196,7 @@ async function googleCivicDistricts({ street, city, state, zip }) {
  * Resolve a voter address to lat/lng + 2026-accurate legislative districts.
  *
  * @param {{ street: string, city: string, state: string, zip?: string }} params
- * @returns {Promise<{ lat, lng, city, state, county, districts: { congressional, state_senate, state_house, locality } }>}
+ * @returns {Promise<{ lat, lng, city, state, county, districts: { congressional, state_senate, state_house, locality, school_district } }>}
  */
 export async function resolveAddress({ street, city, state, zip }) {
   if (!street || !city || !state) {
@@ -204,13 +209,25 @@ export async function resolveAddress({ street, city, state, zip }) {
   // Return cached result if available.
   const cached = await cacheColl.findOne({ address_key: cacheKey });
   if (cached?.districts) {
+    let districts = cached.districts;
+    // Backfill school district for older cache entries (pre-zoning).
+    if (districts.school_district == null) {
+      const patch = await censusGeocode({ street, city, state, zip });
+      if (patch?.school_district) {
+        districts = { ...districts, school_district: patch.school_district };
+        await cacheColl.updateOne(
+          { address_key: cacheKey },
+          { $set: { districts, county: cached.county ?? patch.county } },
+        );
+      }
+    }
     return {
       lat: cached.lat,
       lng: cached.lng,
       city: cached.city || city,
       state: cached.state || state,
       county: cached.county || null,
-      districts: cached.districts,
+      districts,
     };
   }
 
@@ -236,6 +253,7 @@ export async function resolveAddress({ street, city, state, zip }) {
   const state_house   = civicDistricts?.state_house   ?? censusResult.state_house;
 
   const locality = returnedCity || city || null;
+  const school_district = censusResult.school_district ?? null;
 
   const result = {
     lat,
@@ -243,7 +261,7 @@ export async function resolveAddress({ street, city, state, zip }) {
     city: returnedCity,
     state: returnedState,
     county,
-    districts: { congressional, state_senate, state_house, locality },
+    districts: { congressional, state_senate, state_house, locality, school_district },
   };
 
   // Cache the resolved result.

@@ -5,7 +5,12 @@ import * as cheerio from "cheerio";
 import { getCandidatesCollection, getApiCacheCollection } from "../db.js";
 import { resolveAddress, normalizeAddressKey } from "../services/addressResolver.js";
 import { filterCandidates, isAllowedCandidate } from "../services/candidateFilter.js";
-import { triggerDiscovery, isDiscovering } from "../services/raceDiscovery.js";
+import { getSchoolBoardNotice, getMayoralNotice, getCityCouncilNotice } from "../services/schoolElectionNotice.js";
+import { triggerDiscovery, triggerCountyDiscovery, isDiscovering } from "../services/raceDiscovery.js";
+import {
+  excludeGatedCountyRuntimeCandidates,
+  excludeGatedCountyRuntimeFromSerialized,
+} from "../services/localDiscoveryGate.js";
 
 // Generic party platform fallbacks — used when a candidate has no specific policies.
 const GENERIC_POLICIES = {
@@ -228,7 +233,8 @@ router.get("/", async (req, res) => {
 
       const coll = getCandidatesCollection();
       const all = await coll.find({ state: voterState }).toArray();
-      const filtered = filterCandidates(all, districts, lvl, voterState);
+      const allForApi = excludeGatedCountyRuntimeCandidates(all, voterState);
+      const filtered = filterCandidates(allForApi, districts, lvl, voterState);
 
       // Trigger discovery in background if this tab is empty
       const needsDiscovery = filtered.length === 0;
@@ -236,10 +242,18 @@ router.get("/", async (req, res) => {
         triggerDiscovery(districts, voterState, all);
       }
 
+      const school_board =
+        lvl === "local" ? getSchoolBoardNotice(voterState, districts.school_district) : null;
+      const mayoral = lvl === "local" ? getMayoralNotice(voterState, districts.locality) : null;
+      const city_council = lvl === "local" ? getCityCouncilNotice(voterState, districts.locality) : null;
+
       // Return structured response so the frontend can show a "discovering" banner
       return res.json({
         candidates: filtered.map(serializeCandidate),
         discovering: needsDiscovery && isDiscovering(voterState, districts),
+        school_board,
+        mayoral,
+        city_council,
       });
     }
 
@@ -247,16 +261,21 @@ router.get("/", async (req, res) => {
     const apiCache = getApiCacheCollection();
     const cached = await apiCache.findOne({ address_key: cacheKey });
     if (cached?.response) {
-      return res.json(cached.response);
+      const resp = { ...cached.response };
+      if (Array.isArray(resp.candidates)) {
+        resp.candidates = excludeGatedCountyRuntimeFromSerialized(resp.candidates, voterState);
+      }
+      return res.json(resp);
     }
 
     // Fetch candidates for the voter's state (avoids loading the full collection).
     const coll = getCandidatesCollection();
     const all = await coll.find({ state: voterState }).toArray();
+    const allForApi = excludeGatedCountyRuntimeCandidates(all, voterState);
 
-    const federal = filterCandidates(all, districts, "federal", voterState);
-    const state_candidates = filterCandidates(all, districts, "state", voterState);
-    const local = filterCandidates(all, districts, "local", voterState);
+    const federal = filterCandidates(allForApi, districts, "federal", voterState);
+    const state_candidates = filterCandidates(allForApi, districts, "state", voterState);
+    const local = filterCandidates(allForApi, districts, "local", voterState);
     const candidates = [...federal, ...state_candidates, ...local];
 
     if (!districts.congressional && !districts.state_house) {
@@ -273,6 +292,11 @@ router.get("/", async (req, res) => {
       triggerDiscovery(districts, voterState, all);
     }
 
+    // Trigger county-level local discovery if no local candidates for this county
+    if (local.length === 0 && resolved.county) {
+      triggerCountyDiscovery(resolved.county, voterState, all);
+    }
+
     const payload = {
       address: { street, city: returnedCity, state: returnedState, zip: zip || null },
       location: {
@@ -285,6 +309,8 @@ router.get("/", async (req, res) => {
         congressional: districts.congressional,
         state_senate: districts.state_senate,
         state_house: districts.state_house,
+        locality: districts.locality ?? null,
+        school_district: districts.school_district ?? null,
       },
       candidates: candidates.map(serializeCandidate),
     };

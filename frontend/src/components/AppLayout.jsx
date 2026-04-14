@@ -27,6 +27,51 @@ function getPolicies(candidate) {
  * Contextual empty state for sublevel filters — explains why there are no
  * candidates rather than showing a generic "No candidates to display."
  */
+function SchoolBoardFilingNotice({ notice }) {
+  if (!notice?.districtName) return null;
+  return (
+    <>
+      <div className="no-election-icon">—</div>
+      <p className="text-xs text-gray-400 font-medium">{notice.districtName}</p>
+      <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
+        {notice.beforeFilingOpens
+          ? `No filed candidates are shown yet. Candidate filing for your November 2026 school board election is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your school district and county elections office.`
+          : "No filed candidates are listed for this district yet. Check your county clerk or the district for the certified candidate list."}
+      </p>
+    </>
+  );
+}
+
+function MayorFilingNotice({ notice }) {
+  if (!notice?.localityName) return null;
+  return (
+    <>
+      <div className="no-election-icon">—</div>
+      <p className="text-xs text-gray-400 font-medium">Mayor · {notice.localityName}</p>
+      <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
+        {notice.beforeFilingOpens
+          ? `No filed candidates are shown yet. Candidate filing for your November 2026 mayoral election is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your city or county elections office.`
+          : "No filed candidates are listed for this office yet. Check your county clerk or city secretary for the certified candidate list."}
+      </p>
+    </>
+  );
+}
+
+function CityCouncilFilingNotice({ notice }) {
+  if (!notice?.localityName) return null;
+  return (
+    <>
+      <div className="no-election-icon">—</div>
+      <p className="text-xs text-gray-400 font-medium">City Council · {notice.localityName}</p>
+      <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
+        {notice.beforeFilingOpens
+          ? `No filed candidates are shown yet. Candidate filing for your November 2026 city council election is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your city or county elections office.`
+          : "No filed candidates are listed for this office yet. Check your county clerk or city secretary for the certified candidate list."}
+      </p>
+    </>
+  );
+}
+
 function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
   const officeName = sublevelLabels[sublevel] || sublevel;
 
@@ -68,6 +113,42 @@ function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
           : "There may not be a contested race for this office in 2026, or candidate data has not yet been published."}
       </p>
     </>
+  );
+}
+
+function candidateMatchesLocalSchoolBoardSublevel(c) {
+  const office = (c.office || "").toLowerCase();
+  const j = (c.jurisdiction || "").toLowerCase();
+  return (
+    /\bindependent school district\b/.test(office) ||
+    /\bisd\b/.test(office) ||
+    /school board/.test(office) ||
+    (/\bisd\b/.test(j) && (office.includes("trustee") || office.includes("school") || office.includes("board")))
+  );
+}
+
+function candidateMatchesLocalMayorSublevel(c) {
+  const office = (c.office || "").toLowerCase();
+  return (
+    office.includes("mayor") &&
+    !office.includes("lieutenant governor") &&
+    !office.includes("vice mayor") &&
+    !office.includes("deputy mayor")
+  );
+}
+
+function candidateMatchesLocalCityCouncilSublevel(c) {
+  const o = (c.office || "").toLowerCase();
+  const j = (c.jurisdiction || "").toLowerCase();
+  const blob = `${o} ${j}`;
+  if (/\bcounty commissioner\b|\bcommissioners court\b/.test(blob)) return false;
+  if (/school board|\bindependent school district\b|\bisd\b/.test(blob)) return false;
+  if ((/township|board of director/.test(blob)) && !/city council/.test(blob)) return false;
+  return (
+    /city council/.test(blob) ||
+    /council member/.test(blob) ||
+    /\bcouncil district\b/.test(o) ||
+    /\balderm(a|e)n\b/.test(o)
   );
 }
 
@@ -122,13 +203,13 @@ function filterBySublevel(candidates, sublevel) {
       case "local_courts":
         return (office.includes("court") || office.includes("district attorney") || office.includes("judicial")) && !office.includes("county judge");
       case "local_school_board":
-        return office.includes("school") || office.includes("isd") || office.includes("trustee");
+        return candidateMatchesLocalSchoolBoardSublevel(c);
       case "local_township":
         return office.includes("township") || office.includes("board of director");
       case "local_mayor":
-        return office.includes("mayor");
+        return candidateMatchesLocalMayorSublevel(c);
       case "local_city_council":
-        return office.includes("city council") || office.includes("council district");
+        return candidateMatchesLocalCityCouncilSublevel(c);
       default:
         return true;
     }
@@ -139,22 +220,39 @@ function filterBySublevel(candidates, sublevel) {
  * Derive local sublevel chips dynamically from the actual candidates present.
  * Returns an array of { key, label, count } objects.
  */
-function getLocalSublevels(candidates) {
+function getLocalSublevels(candidates, schoolDistrictName, localityName) {
   const defs = [
     { key: "local_county_judge", label: "County Judge", test: (o) => o.includes("county judge") && !o.includes("court") },
     { key: "local_commissioner", label: "Commissioners", test: (o) => o.includes("commissioner") && !o.includes("railroad") && !o.includes("agriculture") && !o.includes("land") },
     { key: "local_jp", label: "Justice of Peace", test: (o) => o.includes("justice of the peace") },
     { key: "local_clerk", label: "Clerks & Treasurer", test: (o) => o.includes("clerk") || o.includes("treasurer") },
     { key: "local_courts", label: "Courts & DA", test: (o) => (o.includes("court") || o.includes("district attorney") || o.includes("judicial")) && !o.includes("county judge") },
-    { key: "local_school_board", label: "School Board", test: (o) => o.includes("school") || o.includes("isd") || o.includes("trustee") },
+    {
+      key: "local_school_board",
+      label: "School Board",
+      test: (o, c) => candidateMatchesLocalSchoolBoardSublevel(c || { office: o }),
+    },
     { key: "local_township", label: "Township", test: (o) => o.includes("township") || o.includes("board of director") },
-    { key: "local_mayor", label: "Mayor", test: (o) => o.includes("mayor") },
-    { key: "local_city_council", label: "City Council", test: (o) => o.includes("city council") || o.includes("council district") },
+    {
+      key: "local_mayor",
+      label: "Mayor",
+      test: (o, c) => candidateMatchesLocalMayorSublevel(c || { office: o }),
+    },
+    {
+      key: "local_city_council",
+      label: "City Council",
+      test: (o, c) => candidateMatchesLocalCityCouncilSublevel(c || { office: o }),
+    },
   ];
   const result = [];
   for (const d of defs) {
-    const count = candidates.filter((c) => d.test((c.office || "").toLowerCase())).length;
-    if (count > 0) result.push({ ...d, count });
+    const count = candidates.filter((c) => d.test((c.office || "").toLowerCase(), c)).length;
+    const forceSchool = d.key === "local_school_board" && schoolDistrictName;
+    const forceMayor = d.key === "local_mayor" && localityName;
+    const forceCityCouncil = d.key === "local_city_council" && localityName;
+    if (count > 0 || forceSchool || forceMayor || forceCityCouncil) {
+      result.push({ ...d, count });
+    }
   }
   return result;
 }
@@ -173,6 +271,9 @@ export default function AppLayout({
   candidatesLoading,
   candidatesError,
   candidatesDiscovering,
+  schoolBoardNotice,
+  mayoralNotice,
+  cityCouncilNotice,
   onSelectCandidate,
   selectedCandidate,
   onLevelChangeFromMap,
@@ -226,6 +327,11 @@ export default function AppLayout({
         : totalCounts?.local;
 
   const userDistricts = addressData?.districts || {};
+  const schoolDistrictName = userDistricts.school_district || null;
+  const localityName = userDistricts.locality || null;
+  const localityTitle = localityName
+    ? localityName.trim().toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase())
+    : "";
 
   // Pre-compute candidate counts per sublevel for badges
   const sublevelCounts = useMemo(() => {
@@ -245,16 +351,16 @@ export default function AppLayout({
 
   // Local sublevel chips — derived dynamically from whichever local candidates are present
   const localSublevels = useMemo(
-    () => (level === "local" ? getLocalSublevels(candidates) : []),
-    [candidates, level],
+    () => (level === "local" ? getLocalSublevels(candidates, schoolDistrictName, localityName) : []),
+    [candidates, level, schoolDistrictName, localityName],
   );
 
   // Auto-select first local category when entering the local tab
   useEffect(() => {
-    if (level === "local" && !sublevel && localSublevels.length > 0 && candidates.length > 0) {
+    if (level === "local" && !sublevel && localSublevels.length > 0) {
       onSublevelChange(localSublevels[0].key);
     }
-  }, [level, sublevel, localSublevels, candidates.length]);
+  }, [level, sublevel, localSublevels, onSublevelChange]);
 
   // Readable sublevel label for the list header
   const sublevelLabels = {
@@ -274,10 +380,12 @@ export default function AppLayout({
     local_jp: "Justice of the Peace",
     local_clerk: "Clerks & Treasurer",
     local_courts: "Courts & District Attorney",
-    local_school_board: "School Board",
+    local_school_board: schoolDistrictName
+      ? `School Board · ${schoolDistrictName.replace(/\s+Independent School District\s*$/i, " ISD")}`
+      : "School Board",
     local_township: "Township Board",
-    local_mayor: "Mayor",
-    local_city_council: "City Council",
+    local_mayor: localityTitle ? `Mayor · ${localityTitle}` : "Mayor",
+    local_city_council: localityTitle ? `City Council · ${localityTitle}` : "City Council",
   };
 
   return (
@@ -505,7 +613,15 @@ export default function AppLayout({
                   </p>
                 </>
               ) : sublevel ? (
-                <NoElectionNotice sublevel={sublevel} sublevelLabels={sublevelLabels} userDistricts={userDistricts} />
+                sublevel === "local_school_board" && schoolBoardNotice && filteredCandidates.length === 0 ? (
+                  <SchoolBoardFilingNotice notice={schoolBoardNotice} />
+                ) : sublevel === "local_mayor" && mayoralNotice && filteredCandidates.length === 0 ? (
+                  <MayorFilingNotice notice={mayoralNotice} />
+                ) : sublevel === "local_city_council" && cityCouncilNotice && filteredCandidates.length === 0 ? (
+                  <CityCouncilFilingNotice notice={cityCouncilNotice} />
+                ) : (
+                  <NoElectionNotice sublevel={sublevel} sublevelLabels={sublevelLabels} userDistricts={userDistricts} />
+                )
               ) : (
                 <p className="text-xs text-gray-500">
                   {level === "local"

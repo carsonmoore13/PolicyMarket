@@ -19,6 +19,13 @@
 import { getCandidatesCollection } from "../db.js";
 import { discoverRaceCandidates } from "./ballotpediaRaceScraper.js";
 import { seedStateRaces, isSeedingInProgress } from "./stateFullSeeder.js";
+import axios from "axios";
+import * as cheerio from "cheerio";
+import {
+  shouldExposeCountyRuntimeDiscoveredCandidates,
+  COUNTY_RUNTIME_SOURCE_NAME,
+  isCountyRuntimeDiscoveredCandidate,
+} from "./localDiscoveryGate.js";
 
 // In-memory set of races currently being discovered so parallel requests
 // don't trigger duplicate scraping work.
@@ -221,6 +228,137 @@ export function triggerDiscovery(districts, voterState, allCandidates) {
       } finally {
         inFlight.delete(key);
       }
+    }
+  })();
+}
+
+// ── County-level runtime discovery ─────────────────────────────────────────
+
+const BP_BASE = "https://ballotpedia.org";
+const countyNegCache = new Map();
+const COUNTY_NEG_TTL = 12 * 60 * 60 * 1000;
+
+function isCountyNegCached(key) {
+  const entry = countyNegCache.get(key);
+  if (!entry) return false;
+  if (Date.now() - entry > COUNTY_NEG_TTL) { countyNegCache.delete(key); return false; }
+  return true;
+}
+
+function isPersonNameSimple(name) {
+  if (!name || name.length < 4 || name.length > 60) return false;
+  if (/party|election|district|senate|house|congress|board|court|committee|commission/i.test(name)) return false;
+  const words = name.trim().split(/\s+/);
+  return words.length >= 2 && /^[A-Z]/.test(words[0]);
+}
+
+function countyOfficePolicies(office) {
+  const lc = (office || "").toLowerCase();
+  if (/judge|court|judicial/i.test(lc)) return ["Ensure fair and impartial adjudication", "Improve court efficiency and reduce backlogs", "Manage growing caseloads", "Maintain accessible court services", "Uphold rule of law"];
+  if (/clerk/i.test(lc)) return ["Modernize records management", "Ensure transparent public records", "Streamline filing processes", "Maintain election integrity", "Reduce costs through automation"];
+  if (/commissioner/i.test(lc)) return ["Manage county growth responsibly", "Maintain fiscal accountability", "Support law enforcement", "Improve infrastructure", "Ensure transparent operations"];
+  if (/attorney|da\b/i.test(lc)) return ["Prosecute criminal cases effectively", "Support victims' rights", "Address growing caseloads", "Ensure public safety", "Maintain justice system integrity"];
+  return ["Support public safety", "Improve county infrastructure", "Ensure fiscal responsibility", "Promote transparent government", "Manage county growth"];
+}
+
+/**
+ * Runtime county discovery: scrape Ballotpedia county election page on-demand
+ * when no local candidates exist for the voter's county. Runs in background.
+ */
+export function triggerCountyDiscovery(county, voterState, allCandidates) {
+  if (!county || voterState !== "TX") return;
+  if (!shouldExposeCountyRuntimeDiscoveredCandidates(voterState)) {
+    console.log(
+      `[RaceDiscovery] County discovery skipped — before COUNTY_RUNTIME_LOCALS_VISIBLE_ON (${voterState})`,
+    );
+    return;
+  }
+
+  const countyName = county.replace(/\s*County\s*$/i, "").trim();
+  const key = `county|${countyName}`;
+  if (inFlight.has(key) || isCountyNegCached(key)) return;
+
+  const countyLower = countyName.toLowerCase();
+  const hasLocal = allCandidates.some((c) => {
+    if (c.office_level !== "local" && c.office_level !== "city") return false;
+    // Ignore county-runtime rows that are currently hidden from the API (same as client filter).
+    if (isCountyRuntimeDiscoveredCandidate(c) && !shouldExposeCountyRuntimeDiscoveredCandidates(voterState)) {
+      return false;
+    }
+    const j = (c.jurisdiction || "").toLowerCase();
+    const o = (c.office || "").toLowerCase();
+    return j.includes(countyLower) || o.includes(countyLower);
+  });
+  if (hasLocal) return;
+
+  inFlight.add(key);
+  console.log(`[RaceDiscovery] No local data for ${countyName} County — triggering county discovery`);
+
+  (async () => {
+    try {
+      const slug = countyName.replace(/ /g, "_");
+      const url = `${BP_BASE}/${slug}_County,_Texas,_elections,_2026`;
+      const res = await axios.get(url, {
+        timeout: 15000,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; PolicyMarket/1.0)" },
+      });
+
+      const $ = cheerio.load(res.data);
+      const coll = getCandidatesCollection();
+      const now = new Date();
+      let inserted = 0;
+
+      const skipOffice = /municipal utility|improvement district|water control|water district|MUD\b|fresh water|levee|emergency service/i;
+      const seen = new Set();
+      let currentOffice = null;
+
+      $("div.widget-data-list").each((_, container) => {
+        $(container).children().each((_, child) => {
+          const tag = (child.tagName || "").toLowerCase();
+          const $child = $(child);
+
+          if (tag === "p") {
+            const bold = $child.find("b").text().trim();
+            if (bold && bold.length > 3 && bold.length < 150) currentOffice = bold;
+          } else if (tag === "ul" && currentOffice && !skipOffice.test(currentOffice)) {
+            $child.find("li").each((_, li) => {
+              const $li = $(li);
+              const $link = $li.find("a[href]").first();
+              if (!$link.length) return;
+              const name = $link.text().trim().replace(/\s*\(i\)\s*$/, "").trim();
+              if (!isPersonNameSimple(name)) return;
+
+              const liText = $li.text();
+              let party = "NP";
+              if (/\(R\)/.test(liText)) party = "R";
+              else if (/\(D\)/.test(liText)) party = "D";
+
+              const href = $link.attr("href") || "";
+              const sourceUrl = href.startsWith("/") ? `${BP_BASE}${href}` : href.includes("ballotpedia.org") ? href : null;
+
+              const ck = `${name}|${currentOffice}`;
+              if (seen.has(ck)) return;
+              seen.add(ck);
+
+              coll.updateOne(
+                { name, office: currentOffice },
+                { $setOnInsert: { name, office: currentOffice, office_level: "local", jurisdiction: `${countyName} County`, state: "TX", district: null, party, policies: countyOfficePolicies(currentOffice), policies_source: "office_party_template", source_url: sourceUrl, source_name: COUNTY_RUNTIME_SOURCE_NAME, status_2026: "nominee", photo: { url: null, source: null, verified: false, fallback_initials: (name.split(" ").filter(w => /^[A-Z]/.test(w)).map(w => w[0]).slice(0, 2).join("")) }, geo: { jurisdiction_name: `${countyName} County`, geo_type: "county_center" }, created_at: now, updated_at: now } },
+                { upsert: true },
+              ).then((r) => { if (r.upsertedCount) inserted++; }).catch(() => {});
+            });
+          }
+        });
+      });
+
+      // Wait for all upserts to settle
+      await new Promise((r) => setTimeout(r, 2000));
+      if (inserted === 0) { countyNegCache.set(key, Date.now()); }
+      console.log(`[RaceDiscovery] County discovery done: ${countyName} — ${inserted} new candidates`);
+    } catch (err) {
+      countyNegCache.set(key, Date.now());
+      console.error(`[RaceDiscovery] County discovery error for ${countyName}: ${err.message}`);
+    } finally {
+      inFlight.delete(key);
     }
   })();
 }

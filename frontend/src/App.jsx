@@ -25,6 +25,9 @@ export default function App() {
     loading: candidatesLoading,
     error: candidatesError,
     discovering: candidatesDiscovering,
+    schoolBoard,
+    mayoral,
+    cityCouncil,
   } = useCandidates(address, level);
 
   const { totals: totalCounts } = useCandidateTotals();
@@ -79,6 +82,9 @@ export default function App() {
         candidatesLoading={candidatesLoading}
         candidatesError={candidatesError}
         candidatesDiscovering={candidatesDiscovering}
+        schoolBoardNotice={level === "local" ? schoolBoard : null}
+        mayoralNotice={level === "local" ? mayoral : null}
+        cityCouncilNotice={level === "local" ? cityCouncil : null}
         onSelectCandidate={handleCandidateSelect}
         selectedCandidate={selectedCandidate}
         onLevelChangeFromMap={handleMapLevelChange}

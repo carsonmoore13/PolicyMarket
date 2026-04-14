@@ -11,7 +11,7 @@
  *   zip     (optional)  improves geocoding accuracy
  *
  * Response:
- *   { street, city, state, lat, lng, districts: { congressional, state_senate, state_house, locality } }
+ *   { street, city, state, lat, lng, districts: { congressional, state_senate, state_house, locality, school_district } }
  */
 
 import express from "express";

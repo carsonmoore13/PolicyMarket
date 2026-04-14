@@ -20,7 +20,7 @@ export async function lookupAddress({ street, city, state, zip }) {
  * Fetch candidates filtered for a specific address + tab level.
  * @param {{ street: string, city: string, state: string, zip?: string }} addr
  * @param {"federal"|"state"|"local"} level
- * @returns {{ candidates: object[], discovering: boolean }}
+ * @returns {{ candidates: object[], discovering: boolean, school_board: object|null, mayoral: object|null, city_council: object|null }}
  */
 export async function fetchCandidates(addr, level) {
   const res = await api.get("/api/candidates", {
@@ -30,8 +30,22 @@ export async function fetchCandidates(addr, level) {
   // Normalise: backend returns { candidates, discovering } but guard against
   // older cached responses that might be a plain array.
   const data = res.data;
-  if (Array.isArray(data)) return { candidates: data, discovering: false };
-  return { candidates: Array.isArray(data.candidates) ? data.candidates : [], discovering: Boolean(data.discovering) };
+  if (Array.isArray(data)) {
+    return {
+      candidates: data,
+      discovering: false,
+      school_board: null,
+      mayoral: null,
+      city_council: null,
+    };
+  }
+  return {
+    candidates: Array.isArray(data.candidates) ? data.candidates : [],
+    discovering: Boolean(data.discovering),
+    school_board: data.school_board ?? null,
+    mayoral: data.mayoral ?? null,
+    city_council: data.city_council ?? null,
+  };
 }
 
 export async function fetchAllCandidates() {

@@ -13,6 +13,12 @@ export function useCandidates(address, level) {
   const [error, setError] = useState(null);
   // True when the backend has triggered background Ballotpedia discovery
   const [discovering, setDiscovering] = useState(false);
+  /** @type {null | { districtName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean }} */
+  const [schoolBoard, setSchoolBoard] = useState(null);
+  /** @type {null | { localityName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean }} */
+  const [mayoral, setMayoral] = useState(null);
+  /** @type {null | { localityName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean }} */
+  const [cityCouncil, setCityCouncil] = useState(null);
 
   useEffect(() => {
     if (!address?.street || !address?.city || !address?.state) return;
@@ -22,11 +28,23 @@ export function useCandidates(address, level) {
       setLoading(true);
       setError(null);
       setDiscovering(false);
+      setSchoolBoard(null);
+      setMayoral(null);
+      setCityCouncil(null);
       try {
-        const { candidates: data, discovering: isDiscovering } = await fetchCandidates(address, level);
+        const {
+          candidates: data,
+          discovering: isDiscovering,
+          school_board: sb,
+          mayoral: my,
+          city_council: cc,
+        } = await fetchCandidates(address, level);
         if (!cancelled) {
           setCandidates(data);
           setDiscovering(isDiscovering);
+          setSchoolBoard(sb ?? null);
+          setMayoral(my ?? null);
+          setCityCouncil(cc ?? null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -35,6 +53,9 @@ export function useCandidates(address, level) {
           setError(msg);
           setCandidates([]);
           setDiscovering(false);
+          setSchoolBoard(null);
+          setMayoral(null);
+          setCityCouncil(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -43,7 +64,7 @@ export function useCandidates(address, level) {
 
     load();
     return () => { cancelled = true; };
-  }, [address?.street, address?.city, address?.state, level]);
+  }, [address?.street, address?.city, address?.state, address?.zip, level]);
 
-  return { candidates, loading, error, discovering };
+  return { candidates, loading, error, discovering, schoolBoard, mayoral, cityCouncil };
 }
