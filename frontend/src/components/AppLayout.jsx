@@ -27,53 +27,122 @@ function getPolicies(candidate) {
  * Contextual empty state for sublevel filters — explains why there are no
  * candidates rather than showing a generic "No candidates to display."
  */
-function SchoolBoardFilingNotice({ notice }) {
-  if (!notice?.districtName) return null;
+function FilingNotice({ label, notice, filingDescription }) {
+  if (!notice) return null;
+  const name = notice.districtName || notice.localityName;
+  if (!name) return null;
   return (
     <>
       <div className="no-election-icon">—</div>
-      <p className="text-xs text-gray-400 font-medium">{notice.districtName}</p>
+      <p className="text-xs text-gray-400 font-medium">{label}{name ? ` · ${name}` : ""}</p>
       <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
         {notice.beforeFilingOpens
-          ? `No filed candidates are shown yet. Candidate filing for your November 2026 school board election is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your school district and county elections office.`
-          : "No filed candidates are listed for this district yet. Check your county clerk or the district for the certified candidate list."}
+          ? `No filed candidates are shown yet. Candidate filing for your ${filingDescription} is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your local elections office.`
+          : "No filed candidates are listed for this race yet. Check your county clerk or local elections office for the certified candidate list."}
       </p>
+      {notice.electionDate && (
+        <p className="text-xs text-blue-400" style={{ lineHeight: 1.6, marginTop: 6 }}>
+          Election day: {notice.electionDate}
+        </p>
+      )}
     </>
   );
+}
+
+function SchoolBoardFilingNotice({ notice }) {
+  return <FilingNotice label="School Board" notice={notice} filingDescription="school board election" />;
 }
 
 function MayorFilingNotice({ notice }) {
-  if (!notice?.localityName) return null;
-  return (
-    <>
-      <div className="no-election-icon">—</div>
-      <p className="text-xs text-gray-400 font-medium">Mayor · {notice.localityName}</p>
-      <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
-        {notice.beforeFilingOpens
-          ? `No filed candidates are shown yet. Candidate filing for your November 2026 mayoral election is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your city or county elections office.`
-          : "No filed candidates are listed for this office yet. Check your county clerk or city secretary for the certified candidate list."}
-      </p>
-    </>
-  );
+  return <FilingNotice label="Mayor" notice={notice} filingDescription="mayoral election" />;
 }
 
 function CityCouncilFilingNotice({ notice }) {
-  if (!notice?.localityName) return null;
-  return (
-    <>
-      <div className="no-election-icon">—</div>
-      <p className="text-xs text-gray-400 font-medium">City Council · {notice.localityName}</p>
-      <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
-        {notice.beforeFilingOpens
-          ? `No filed candidates are shown yet. Candidate filing for your November 2026 city council election is expected to open on or after ${notice.filingOpensDisplay}. Verify the exact filing calendar with your city or county elections office.`
-          : "No filed candidates are listed for this office yet. Check your county clerk or city secretary for the certified candidate list."}
-      </p>
-    </>
-  );
+  return <FilingNotice label="City Council" notice={notice} filingDescription="city council election" />;
 }
+
+function TownshipFilingNotice({ notice }) {
+  return <FilingNotice label="Township Board" notice={notice} filingDescription="township board election" />;
+}
+
+/**
+ * Election cycle metadata — when no candidates exist for a race, tells the
+ * voter when the next election for that office takes place and why it's empty.
+ */
+const ELECTION_CYCLES = {
+  us_senate: {
+    termYears: 6,
+    body: "U.S. Senate terms are six years. Texas's two Senate seats are staggered — one was last contested in 2024 (John Cornyn's seat) and the other in 2020 (Ted Cruz's seat, next up in 2026).",
+    nextElection: "November 2026 or November 2028 depending on the seat.",
+  },
+  us_house: {
+    termYears: 2,
+    body: "U.S. House seats are up every two years. If no candidates are shown, filing may not have opened yet or this district is uncontested.",
+    nextElection: "November 2026",
+  },
+  state_senate: {
+    termYears: 4,
+    body: "Texas State Senate terms are four years, and only half the 31 seats are contested each cycle. Your district may not be up until the next election.",
+    nextElection: "November 2026 or November 2028 depending on your district.",
+  },
+  state_house: {
+    termYears: 2,
+    body: "Texas State House seats are up every two years. If no candidates are shown, this district may be uncontested in 2026.",
+    nextElection: "November 2026",
+  },
+  governor: {
+    termYears: 4,
+    body: "The Texas Governor serves a four-year term. The next gubernatorial election is in 2026.",
+    nextElection: "November 2026",
+  },
+  lt_governor: {
+    termYears: 4,
+    body: "The Texas Lieutenant Governor serves a four-year term, elected on the same cycle as the Governor.",
+    nextElection: "November 2026",
+  },
+  attorney_general: {
+    termYears: 4,
+    body: "The Texas Attorney General serves a four-year term, elected on the same cycle as the Governor.",
+    nextElection: "November 2026",
+  },
+  ag_commissioner: {
+    termYears: 4,
+    body: "The Texas Agriculture Commissioner serves a four-year term.",
+    nextElection: "November 2026",
+  },
+  land_commissioner: {
+    termYears: 4,
+    body: "The Texas Land Commissioner serves a four-year term.",
+    nextElection: "November 2026",
+  },
+};
+
+/** One-line descriptions of what each office does. */
+const OFFICE_DESCRIPTIONS = {
+  us_senate: "Represents the state in Congress; confirms judges, treaties, and federal appointments.",
+  us_house: "Represents your congressional district in Congress; writes federal law and controls spending.",
+  state_senate: "Writes state law, confirms gubernatorial appointments, and sets the state budget.",
+  state_house: "Represents your district in the Texas House; authors bills and appropriates state funds.",
+  governor: "Chief executive of Texas; signs or vetoes legislation, commands the National Guard, and sets the state agenda.",
+  lt_governor: "Presides over the Texas Senate, assigns committee chairs, and is first in line for governor.",
+  attorney_general: "The state's chief lawyer; enforces state law, issues legal opinions, and represents Texas in court.",
+  ag_commissioner: "Oversees Texas agriculture, regulates pesticides and fuel quality, and supports rural communities.",
+  land_commissioner: "Manages 13 million acres of state land, funds public schools through the Permanent School Fund, and oversees veterans' programs.",
+  local_county_judge: "Presides over the county commissioners court, manages the county budget, and serves as chief administrator.",
+  local_commissioner: "Oversees county road maintenance, approves the budget, and manages services in your precinct.",
+  local_jp: "Handles small claims, evictions, truancy cases, and performs marriages in your precinct.",
+  local_constable: "Serves warrants, provides courthouse security, and enforces court orders in your precinct.",
+  local_clerk: "Maintains official records, issues licenses, and manages elections or financial accounts for the county.",
+  local_courts: "Presides over criminal or civil cases at the district or county level.",
+  local_school_board: "Sets curriculum policy, approves the school budget, and hires the superintendent for your district.",
+  local_township: "Governs local services such as roads, zoning, and community facilities for your township.",
+  local_mayor: "Chief executive of your city; sets the municipal agenda, proposes the city budget, and represents the city.",
+  local_city_council: "Writes city ordinances, approves the budget, and oversees municipal services in your district.",
+};
 
 function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
   const officeName = sublevelLabels[sublevel] || sublevel;
+  const cycle = ELECTION_CYCLES[sublevel];
 
   // District-based races: tell the user their specific district isn't up
   const districtSublevels = {
@@ -83,7 +152,7 @@ function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
   };
   const districtId = districtSublevels[sublevel];
 
-  if (districtId) {
+  if (districtId && cycle) {
     return (
       <>
         <div className="no-election-icon">—</div>
@@ -91,9 +160,27 @@ function NoElectionNotice({ sublevel, sublevelLabels, userDistricts }) {
           No 2026 election in {officeName}
         </p>
         <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
-          This seat is not up for election this cycle.
-          Texas State Senate terms are four years, and only
-          half the seats are contested each election.
+          {cycle.body}
+        </p>
+        <p className="text-xs text-blue-400" style={{ lineHeight: 1.6, marginTop: 6 }}>
+          Next election: {cycle.nextElection}
+        </p>
+      </>
+    );
+  }
+
+  if (cycle) {
+    return (
+      <>
+        <div className="no-election-icon">—</div>
+        <p className="text-xs text-gray-400 font-medium">
+          No candidates found for {officeName}
+        </p>
+        <p className="text-xs text-gray-600" style={{ lineHeight: 1.6 }}>
+          {cycle.body}
+        </p>
+        <p className="text-xs text-blue-400" style={{ lineHeight: 1.6, marginTop: 6 }}>
+          Next election: {cycle.nextElection}
         </p>
       </>
     );
@@ -277,6 +364,7 @@ export default function AppLayout({
   schoolBoardNotice,
   mayoralNotice,
   cityCouncilNotice,
+  townshipNotice,
   onSelectCandidate,
   selectedCandidate,
   onLevelChangeFromMap,
@@ -583,6 +671,9 @@ export default function AppLayout({
           {sublevel && sublevelLabels[sublevel] ? (
             <>
               <span className="jurisdiction-context">{sublevelLabels[sublevel]}</span>
+              {OFFICE_DESCRIPTIONS[sublevel] && (
+                <span className="office-description">{OFFICE_DESCRIPTIONS[sublevel]}</span>
+              )}
               <span className="list-header-count">
                 {filteredCandidates.length} candidate{filteredCandidates.length !== 1 ? "s" : ""}
               </span>
@@ -637,6 +728,8 @@ export default function AppLayout({
                   <MayorFilingNotice notice={mayoralNotice} />
                 ) : sublevel === "local_city_council" && cityCouncilNotice && filteredCandidates.length === 0 ? (
                   <CityCouncilFilingNotice notice={cityCouncilNotice} />
+                ) : sublevel === "local_township" && townshipNotice && filteredCandidates.length === 0 ? (
+                  <TownshipFilingNotice notice={townshipNotice} />
                 ) : (
                   <NoElectionNotice sublevel={sublevel} sublevelLabels={sublevelLabels} userDistricts={userDistricts} />
                 )

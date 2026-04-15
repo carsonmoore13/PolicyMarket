@@ -17,8 +17,10 @@ export function useCandidates(address, level) {
   const [schoolBoard, setSchoolBoard] = useState(null);
   /** @type {null | { localityName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean }} */
   const [mayoral, setMayoral] = useState(null);
-  /** @type {null | { localityName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean }} */
+  /** @type {null | { localityName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean, electionDate?: string }} */
   const [cityCouncil, setCityCouncil] = useState(null);
+  /** @type {null | { localityName: string, filingOpens: string, filingOpensDisplay: string, beforeFilingOpens: boolean, electionDate?: string }} */
+  const [township, setTownship] = useState(null);
 
   useEffect(() => {
     if (!address?.street || !address?.city || !address?.state) return;
@@ -31,6 +33,7 @@ export function useCandidates(address, level) {
       setSchoolBoard(null);
       setMayoral(null);
       setCityCouncil(null);
+      setTownship(null);
       try {
         const {
           candidates: data,
@@ -38,6 +41,7 @@ export function useCandidates(address, level) {
           school_board: sb,
           mayoral: my,
           city_council: cc,
+          township: tw,
         } = await fetchCandidates(address, level);
         if (!cancelled) {
           setCandidates(data);
@@ -45,6 +49,7 @@ export function useCandidates(address, level) {
           setSchoolBoard(sb ?? null);
           setMayoral(my ?? null);
           setCityCouncil(cc ?? null);
+          setTownship(tw ?? null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -56,6 +61,7 @@ export function useCandidates(address, level) {
           setSchoolBoard(null);
           setMayoral(null);
           setCityCouncil(null);
+          setTownship(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -66,5 +72,5 @@ export function useCandidates(address, level) {
     return () => { cancelled = true; };
   }, [address?.street, address?.city, address?.state, address?.zip, level]);
 
-  return { candidates, loading, error, discovering, schoolBoard, mayoral, cityCouncil };
+  return { candidates, loading, error, discovering, schoolBoard, mayoral, cityCouncil, township };
 }

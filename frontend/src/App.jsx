@@ -28,6 +28,7 @@ export default function App() {
     schoolBoard,
     mayoral,
     cityCouncil,
+    township,
   } = useCandidates(address, level);
 
   const { totals: totalCounts } = useCandidateTotals();
@@ -85,6 +86,7 @@ export default function App() {
         schoolBoardNotice={level === "local" ? schoolBoard : null}
         mayoralNotice={level === "local" ? mayoral : null}
         cityCouncilNotice={level === "local" ? cityCouncil : null}
+        townshipNotice={level === "local" ? township : null}
         onSelectCandidate={handleCandidateSelect}
         selectedCandidate={selectedCandidate}
         onLevelChangeFromMap={handleMapLevelChange}

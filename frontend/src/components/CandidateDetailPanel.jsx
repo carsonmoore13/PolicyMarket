@@ -34,7 +34,13 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
       .then((data) => {
         if (cancelled) return;
         if (data.bio) {
-          setBio(data.bio);
+          // Strip any residual CSS/HTML junk that leaked from Ballotpedia scraping
+          let cleaned = data.bio
+            .replace(/\.[a-z_-]+\s*\{[^}]*\}/gi, "")
+            .replace(/<\/?[a-z][^>]*>/gi, "")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+          setBio(cleaned);
         } else {
           setBioError(data.error || "No biography available");
         }

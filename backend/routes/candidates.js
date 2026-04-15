@@ -5,7 +5,7 @@ import * as cheerio from "cheerio";
 import { getCandidatesCollection, getApiCacheCollection } from "../db.js";
 import { resolveAddress, normalizeAddressKey } from "../services/addressResolver.js";
 import { filterCandidates, isAllowedCandidate } from "../services/candidateFilter.js";
-import { getSchoolBoardNotice, getMayoralNotice, getCityCouncilNotice } from "../services/schoolElectionNotice.js";
+import { getSchoolBoardNotice, getMayoralNotice, getCityCouncilNotice, getTownshipNotice } from "../services/schoolElectionNotice.js";
 import { triggerDiscovery, triggerCountyDiscovery, isDiscovering } from "../services/raceDiscovery.js";
 import {
   excludeGatedCountyRuntimeCandidates,
@@ -100,22 +100,48 @@ router.get("/all", async (_req, res) => {
 
 // ─── Ballotpedia bio scraper (on-demand, cached in DB) ──────────────────────
 
+/** Regex patterns that indicate a paragraph is CSS/HTML junk, not biography text. */
+const BIO_JUNK_RE =
+  /jQuery|padding|font-size|font-weight|margin-left|list-style|tusa-race|\.ballot-measure|\.endorsements|\.subcommittee|\.source-link|color:\s*#|<\/?pre>|<\/?p>|background-color|text-align|border-radius|\.mw-|\.campaign|display:\s*|position:\s*|overflow:\s*|z-index/i;
+
+/**
+ * Strip CSS / HTML fragments that leak into Ballotpedia article text.
+ * Handles blocks like: ".subcommittee { font-weight: 400; ... }"
+ */
+function cleanBioText(text) {
+  if (!text) return text;
+  // Remove inline CSS rule blocks:  .selector { ... }
+  let cleaned = text.replace(/\.[a-z_-]+\s*\{[^}]*\}/gi, "");
+  // Remove stray HTML tags
+  cleaned = cleaned.replace(/<\/?[a-z][^>]*>/gi, "");
+  // Remove orphaned CSS property lines (e.g. "color: #337ab7, }")
+  cleaned = cleaned.replace(/[a-z-]+:\s*[^;,}]+[;,}]/gi, (match) => {
+    // Only strip if it looks like CSS, not natural English
+    if (/^(color|font|margin|padding|border|display|position|background|list-style|text-align|overflow|z-index)/i.test(match)) return "";
+    return match;
+  });
+  // Collapse whitespace
+  cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+  return cleaned;
+}
+
 function scrapeBio(html) {
   const $ = cheerio.load(html);
   const paragraphs = [];
 
   $(".mw-parser-output > p").each((_, el) => {
-    const text = $(el)
+    let text = $(el)
       .text()
       .replace(/\[\d+\]/g, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (
-      text.length > 60 &&
-      !/jQuery|padding|font-size|tusa-race|\.ballot-measure|\.endorsements/i.test(text)
-    ) {
-      paragraphs.push(text);
+    if (text.length < 40) return;
+    if (BIO_JUNK_RE.test(text)) {
+      // Try to salvage — some paragraphs have real bio text mixed with CSS
+      text = cleanBioText(text);
+      if (text.length < 40 || BIO_JUNK_RE.test(text)) return;
     }
+    paragraphs.push(text);
   });
 
   return paragraphs.slice(0, 6).join("\n\n");
@@ -135,7 +161,15 @@ router.get("/:id/bio", async (req, res) => {
 
     // Return cached bio if we already have it
     if (doc.bio && doc.bio.length > 50) {
-      return res.json({ bio: doc.bio, source: doc.bio_source || "ballotpedia", cached: true });
+      let bio = doc.bio;
+      // Clean cached bios that contain CSS/HTML junk from earlier scrapes
+      if (BIO_JUNK_RE.test(bio)) {
+        bio = cleanBioText(bio);
+        if (bio.length > 30) {
+          await coll.updateOne({ _id: oid }, { $set: { bio } });
+        }
+      }
+      return res.json({ bio, source: doc.bio_source || "ballotpedia", cached: true });
     }
 
     if (!doc.source_url) {
@@ -246,6 +280,7 @@ router.get("/", async (req, res) => {
         lvl === "local" ? getSchoolBoardNotice(voterState, districts.school_district) : null;
       const mayoral = lvl === "local" ? getMayoralNotice(voterState, districts.locality) : null;
       const city_council = lvl === "local" ? getCityCouncilNotice(voterState, districts.locality) : null;
+      const township = lvl === "local" ? getTownshipNotice(voterState, districts.locality) : null;
 
       // Return structured response so the frontend can show a "discovering" banner
       return res.json({
@@ -254,6 +289,7 @@ router.get("/", async (req, res) => {
         school_board,
         mayoral,
         city_council,
+        township,
       });
     }
 

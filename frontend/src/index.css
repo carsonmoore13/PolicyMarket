@@ -360,6 +360,18 @@ body {
   letter-spacing: 0.8px;
 }
 
+.office-description {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+  text-transform: none;
+  line-height: 1.45;
+  opacity: 0.85;
+  margin: 2px 0 1px;
+}
+
 .list-header-count {
   display: block;
   font-size: 9px;
