@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getPartyBgClass } from "../utils/partyColors.js";
 import CandidateAvatar from "./CandidateAvatar.jsx";
 import { fetchCandidateBio } from "../api/client.js";
@@ -10,6 +10,7 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
   const [bio, setBio] = useState(null);
   const [bioLoading, setBioLoading] = useState(false);
   const [bioError, setBioError] = useState(null);
+  const [campaignUrl, setCampaignUrl] = useState(null);
 
   useEffect(() => {
     if (candidate) {
@@ -17,43 +18,52 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
       setActiveTab("overview");
       setBio(null);
       setBioError(null);
+      setCampaignUrl(null);
       requestAnimationFrame(() => setVisible(true));
     } else {
       setVisible(false);
     }
   }, [candidate?._id]);
 
-  // Fetch bio lazily when Bio tab is selected
+  // Fetch bio + campaign URL lazily when Bio tab is selected (or eagerly for campaign link)
+  const bioFetchedRef = useRef(null);
   useEffect(() => {
-    if (activeTab !== "bio" || !candidate?._id || bio) return;
+    if (!candidate?._id) return;
+    // Fetch once per candidate — either when bio tab is selected or on mount for campaign URL
+    if (bioFetchedRef.current === candidate._id) return;
+    if (activeTab !== "bio" && campaignUrl !== null) return; // only eager-fetch if we don't have campaign URL yet
+    // For overview tab, only fetch if we haven't tried yet (to get campaign_url)
+    if (activeTab !== "bio" && bio !== null) return;
+
     let cancelled = false;
-    setBioLoading(true);
+    setBioLoading(activeTab === "bio");
     setBioError(null);
 
     fetchCandidateBio(candidate._id)
       .then((data) => {
         if (cancelled) return;
+        bioFetchedRef.current = candidate._id;
+        if (data.campaign_url) setCampaignUrl(data.campaign_url);
         if (data.bio) {
-          // Strip any residual CSS/HTML junk that leaked from Ballotpedia scraping
           let cleaned = data.bio
             .replace(/\.[a-z_-]+\s*\{[^}]*\}/gi, "")
             .replace(/<\/?[a-z][^>]*>/gi, "")
             .replace(/\s{2,}/g, " ")
             .trim();
           setBio(cleaned);
-        } else {
+        } else if (activeTab === "bio") {
           setBioError(data.error || "No biography available");
         }
       })
       .catch(() => {
-        if (!cancelled) setBioError("Failed to load biography");
+        if (!cancelled && activeTab === "bio") setBioError("Failed to load biography");
       })
       .finally(() => {
         if (!cancelled) setBioLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [activeTab, candidate?._id, bio]);
+  }, [activeTab, candidate?._id]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -232,9 +242,22 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
           </div>
         )}
 
-        {/* Source link */}
-        {candidate.source_url && (
-          <div className="pm-detail-footer">
+        {/* Links */}
+        <div className="pm-detail-footer">
+          {campaignUrl && (
+            <a
+              href={campaignUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="pm-detail-link pm-detail-link-campaign"
+            >
+              <span>Campaign website</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 2h7v7M12 2L5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          )}
+          {candidate.source_url && (
             <a
               href={candidate.source_url}
               target="_blank"
@@ -246,8 +269,8 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
                 <path d="M5 2h7v7M12 2L5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

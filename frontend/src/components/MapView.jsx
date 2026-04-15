@@ -97,48 +97,49 @@ function getDistrictsForLevel(level, sublevel, districts) {
 function getBoundaryStyles(type) {
   // Color palette: muted cool grays with subtle tint per type
   const palette = {
-    congressional:  { hue: "180, 15%", accent: "#5b8a9a" },
+    congressional:  { hue: "180, 15%", accent: "#5ba8c4" },
     state_senate:   { hue: "210, 18%", accent: "#6b87a8" },
     state_house:    { hue: "220, 15%", accent: "#7b82a0" },
     state_outline:  { hue: "200, 12%", accent: "#8a9aaa" },
   };
   const p = palette[type] || palette.congressional;
 
+  const isDistrict = type !== "state_outline";
   return [
     // Layer 0: Wide outer glow
     {
       color: p.accent,
-      weight: 14,
-      opacity: 0.06,
+      weight: isDistrict ? 16 : 14,
+      opacity: isDistrict ? 0.08 : 0.06,
       fillColor: p.accent,
-      fillOpacity: 0.02,
+      fillOpacity: isDistrict ? 0.04 : 0.02,
       lineCap: "round",
       lineJoin: "round",
     },
     // Layer 1: Medium glow
     {
       color: p.accent,
-      weight: 7,
-      opacity: 0.12,
+      weight: isDistrict ? 8 : 7,
+      opacity: isDistrict ? 0.18 : 0.12,
       fill: false,
       lineCap: "round",
       lineJoin: "round",
     },
-    // Layer 2: Core border — muted gray with slight color tint
+    // Layer 2: Core border
     {
       color: p.accent,
-      weight: 2.5,
-      opacity: 0.45,
+      weight: isDistrict ? 3 : 2.5,
+      opacity: isDistrict ? 0.6 : 0.45,
       fill: false,
       lineCap: "round",
       lineJoin: "round",
-      dashArray: "8 4",
+      dashArray: isDistrict ? null : "8 4",
     },
     // Layer 3: Bright inner hairline
     {
       color: "#d4d4d8",
-      weight: 0.8,
-      opacity: 0.25,
+      weight: isDistrict ? 1 : 0.8,
+      opacity: isDistrict ? 0.35 : 0.25,
       fill: false,
       lineCap: "round",
       lineJoin: "round",
@@ -334,8 +335,9 @@ export default function MapView({
         const fitLayer = L.geoJSON(geojson);
         const bounds = fitLayer.getBounds();
         if (bounds.isValid() && !userInteractingRef.current) {
-          const maxZoom = isStateOutline ? 7 : 12;
-          map.flyToBounds(bounds, { padding: [50, 50], maxZoom, duration: 0.9 });
+          const maxZoom = isStateOutline ? 7 : 13;
+          const padding = isStateOutline ? [50, 50] : [40, 40];
+          map.flyToBounds(bounds, { padding, maxZoom, duration: 0.9 });
         }
 
         // Add a floating district label at the centroid of the boundary

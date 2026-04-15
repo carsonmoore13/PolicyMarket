@@ -137,7 +137,6 @@ function scrapeBio(html) {
       .trim();
     if (text.length < 40) return;
     if (BIO_JUNK_RE.test(text)) {
-      // Try to salvage — some paragraphs have real bio text mixed with CSS
       text = cleanBioText(text);
       if (text.length < 40 || BIO_JUNK_RE.test(text)) return;
     }
@@ -145,6 +144,39 @@ function scrapeBio(html) {
   });
 
   return paragraphs.slice(0, 6).join("\n\n");
+}
+
+/** Extract campaign website URL from a Ballotpedia page's infobox. */
+function scrapeCampaignUrl(html) {
+  const $ = cheerio.load(html);
+  let campaignUrl = null;
+  // Ballotpedia infobox: look for "Campaign website" or "Website" label
+  $(".infobox a, .widget-row a, .votebox-header-election-type a").each((_, el) => {
+    const href = $(el).attr("href") || "";
+    const text = $(el).text().trim().toLowerCase();
+    if (
+      (text.includes("campaign website") || text.includes("campaign site")) &&
+      href.startsWith("http")
+    ) {
+      campaignUrl = href;
+    }
+  });
+  // Fallback: look for external links labeled "Official website" or "Campaign website"
+  if (!campaignUrl) {
+    $("a[href]").each((_, el) => {
+      const text = $(el).text().trim().toLowerCase();
+      const href = $(el).attr("href") || "";
+      if (
+        (text === "campaign website" || text === "official website" || text === "website") &&
+        href.startsWith("http") &&
+        !href.includes("ballotpedia.org") &&
+        !href.includes("wikipedia.org")
+      ) {
+        campaignUrl = href;
+      }
+    });
+  }
+  return campaignUrl;
 }
 
 // GET /api/candidates/:id/bio
@@ -169,14 +201,19 @@ router.get("/:id/bio", async (req, res) => {
           await coll.updateOne({ _id: oid }, { $set: { bio } });
         }
       }
-      return res.json({ bio, source: doc.bio_source || "ballotpedia", cached: true });
+      return res.json({
+        bio,
+        source: doc.bio_source || "ballotpedia",
+        campaign_url: doc.campaign_url || null,
+        cached: true,
+      });
     }
 
     if (!doc.source_url) {
-      return res.json({ bio: null, source: null, error: "No Ballotpedia URL for this candidate" });
+      return res.json({ bio: null, source: null, campaign_url: null, error: "No Ballotpedia URL for this candidate" });
     }
 
-    // Scrape bio from Ballotpedia
+    // Scrape bio + campaign URL from Ballotpedia
     let html;
     try {
       const resp = await axios.get(doc.source_url, {
@@ -189,21 +226,23 @@ router.get("/:id/bio", async (req, res) => {
       });
       html = resp.data;
     } catch {
-      return res.json({ bio: null, source: null, error: "Failed to fetch Ballotpedia page" });
+      return res.json({ bio: null, source: null, campaign_url: null, error: "Failed to fetch Ballotpedia page" });
     }
 
     const bio = scrapeBio(html);
-    if (!bio || bio.length < 30) {
-      return res.json({ bio: null, source: null, error: "No bio found on Ballotpedia" });
-    }
+    const campaign_url = scrapeCampaignUrl(html);
 
     // Cache in DB so we never re-scrape
-    await coll.updateOne(
-      { _id: oid },
-      { $set: { bio, bio_source: "ballotpedia", bio_fetched: new Date() } },
-    );
+    const updateFields = { bio_source: "ballotpedia", bio_fetched: new Date() };
+    if (bio && bio.length >= 30) updateFields.bio = bio;
+    if (campaign_url) updateFields.campaign_url = campaign_url;
+    await coll.updateOne({ _id: oid }, { $set: updateFields });
 
-    return res.json({ bio, source: "ballotpedia", cached: false });
+    if (!bio || bio.length < 30) {
+      return res.json({ bio: null, source: null, campaign_url, error: "No bio found on Ballotpedia" });
+    }
+
+    return res.json({ bio, source: "ballotpedia", campaign_url, cached: false });
   } catch (err) {
     console.error("Bio fetch failed", err.message);
     return res.status(500).json({ error: "Failed to fetch bio" });
