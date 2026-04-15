@@ -143,6 +143,92 @@ function candidateMatchesVoterLocality(c, voterLocality) {
   return localityMatchSlugs(voterLocality).some((slug) => blob.includes(slug));
 }
 
+/** Commissioner races (county commissioner court). */
+function isCommissionerCandidate(c) {
+  const o = (c.office || "").toLowerCase();
+  return /commissioner/i.test(o) && !/railroad|agriculture|land/i.test(o);
+}
+
+/** Justice of the Peace races. */
+function isJPCandidate(c) {
+  return /justice of the peace/i.test(c.office || "");
+}
+
+/**
+ * Extract precinct number from a candidate's district or office field.
+ * Handles: "Montgomery Pct 1", "Precinct 2", "Commissioner Precinct 4", etc.
+ */
+function extractPrecinctNumber(c) {
+  const blob = `${c.district || ""} ${c.office || ""}`;
+  const m = blob.match(/(?:pct|precinct)\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+/** Municipal-court races (e.g. "Conroe Municipal Court") — should be zoned to voter's city. */
+function isMunicipalCourtCandidate(c) {
+  return /municipal court/i.test(c.office || "");
+}
+
+/** Utility / special districts (MUD, PUD, water) — require specific district data to match. */
+function isSpecialDistrictCandidate(c) {
+  const blob = `${c.office || ""} ${c.jurisdiction || ""}`.toLowerCase();
+  return /\b(utility district|mud\b|water district|municipal utility|special district)\b/.test(blob);
+}
+
+/**
+ * Normalize a candidate name for deduplication.
+ * Strips punctuation, generational suffixes, and excess whitespace so that
+ * "John A. Lagway, Jr." and "John A. Lagway Jr." resolve to the same key.
+ */
+function normalizeNameForDedup(name) {
+  let n = (name || "").trim().toLowerCase();
+  n = n.replace(/[.,]/g, "");
+  n = n.replace(/\s+(jr|sr|ii|iii|iv|v)\s*$/i, "");
+  return n.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Score a candidate record for dedup preference.
+ * Higher score = preferred when multiple records exist for the same person.
+ */
+function scoreCandidateRecord(c) {
+  let score = 0;
+  if (c.photo?.url) score += 10;
+  if (c.source_url) score += 5;
+  if (c.policies?.length) score += 3;
+  if (c.district) score += 2;
+  const src = (c.source_name || "").toLowerCase();
+  if (src.includes("secretary of state")) score += 1;
+  else if (src === "ballotpedia") score += 2;
+  return score;
+}
+
+/**
+ * Deduplicate candidates that appear from multiple sources with different
+ * office title formatting (e.g. "221st District Court Judge" vs
+ * "Texas 221st District Court"). Groups by normalized name and keeps the
+ * record with the highest data-quality score.
+ */
+function deduplicateCandidates(candidates) {
+  if (!candidates.length) return candidates;
+  const groups = new Map();
+  for (const c of candidates) {
+    const key = normalizeNameForDedup(c.name);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  const result = [];
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      result.push(group[0]);
+      continue;
+    }
+    group.sort((a, b) => scoreCandidateRecord(b) - scoreCandidateRecord(a));
+    result.push(group[0]);
+  }
+  return result;
+}
+
 /**
  * Filter candidates by level for a specific voter.
  *
@@ -215,6 +301,35 @@ export function filterCandidates(candidates, districts, level, voterState = null
       return candidateMatchesVoterLocality(c, districts.locality);
     }
 
+    // Municipal court: zone to voter's locality only (not county-wide).
+    if (isMunicipalCourtCandidate(c)) {
+      if (!districts.locality) return false;
+      return candidateMatchesVoterLocality(c, districts.locality);
+    }
+
+    // Utility / special districts (MUD, PUD, etc.) — skip without specific district data.
+    if (isSpecialDistrictCandidate(c)) {
+      return false;
+    }
+
+    // Commissioner precinct: filter to voter's precinct when known.
+    if (isCommissionerCandidate(c)) {
+      const candPct = extractPrecinctNumber(c);
+      if (candPct != null && districts.commissioner_precinct != null) {
+        return candPct === districts.commissioner_precinct;
+      }
+      // No precinct data available — fall through to county match below
+    }
+
+    // Justice of the Peace precinct: filter to voter's precinct when known.
+    if (isJPCandidate(c)) {
+      const candPct = extractPrecinctNumber(c);
+      if (candPct != null && districts.jp_precinct != null) {
+        return candPct === districts.jp_precinct;
+      }
+      // No precinct data available — fall through to county match below
+    }
+
     const cJuris = (c.jurisdiction || "").toLowerCase();
     const cOffice = (c.office || "").toLowerCase();
     const locality = (districts.locality || "").toLowerCase();
@@ -240,6 +355,6 @@ export function filterCandidates(candidates, districts, level, voterState = null
 
   if (level === "federal") return pool.filter(isFederal);
   if (level === "state") return pool.filter(isState);
-  if (level === "local") return pool.filter(isLocal);
+  if (level === "local") return deduplicateCandidates(pool.filter(isLocal));
   return pool;
 }

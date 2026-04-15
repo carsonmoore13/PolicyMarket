@@ -129,6 +129,8 @@ function parseOcdDivisions(divisions, stateAbbr) {
   let congressional = null;
   let state_senate = null;
   let state_house = null;
+  let commissioner_precinct = null;
+  let jp_precinct = null;
 
   for (const ocdId of Object.keys(divisions)) {
     // Congressional district
@@ -155,10 +157,28 @@ function parseOcdDivisions(divisions, stateAbbr) {
     );
     if (slhMatch) {
       state_house = `HD-${parseInt(slhMatch[1], 10)}`;
+      continue;
+    }
+
+    // County commissioner precinct / council district
+    const commMatch = ocdId.match(
+      new RegExp(`country:us/state:${st}/county:[^/]+/(commissioner_district|council_district|commissioner_precinct):(\\d+)`, "i")
+    );
+    if (commMatch) {
+      commissioner_precinct = parseInt(commMatch[2], 10);
+      continue;
+    }
+
+    // Justice of the Peace precinct
+    const jpMatch = ocdId.match(
+      new RegExp(`country:us/state:${st}/county:[^/]+/(precinct|jp_district|justice_precinct|justice_of_the_peace_precinct):(\\d+)`, "i")
+    );
+    if (jpMatch) {
+      jp_precinct = parseInt(jpMatch[2], 10);
     }
   }
 
-  return { congressional, state_senate, state_house };
+  return { congressional, state_senate, state_house, commissioner_precinct, jp_precinct };
 }
 
 async function googleCivicDistricts({ street, city, state, zip }) {
@@ -172,9 +192,8 @@ async function googleCivicDistricts({ street, city, state, zip }) {
       params: {
         address,
         key: apiKey,
-        // Request both federal (country) and state (administrativeArea1) levels
-        levels: ["country", "administrativeArea1"],
-        roles: ["legislatorUpperBody", "legislatorLowerBody"],
+        // Request federal, state, AND county levels for precinct data
+        levels: ["country", "administrativeArea1", "administrativeArea2"],
       },
       timeout: 10000,
     });
@@ -251,6 +270,8 @@ export async function resolveAddress({ street, city, state, zip }) {
   const congressional = civicDistricts?.congressional ?? censusResult.congressional;
   const state_senate  = civicDistricts?.state_senate  ?? censusResult.state_senate;
   const state_house   = civicDistricts?.state_house   ?? censusResult.state_house;
+  const commissioner_precinct = civicDistricts?.commissioner_precinct ?? null;
+  const jp_precinct = civicDistricts?.jp_precinct ?? null;
 
   const locality = returnedCity || city || null;
   const school_district = censusResult.school_district ?? null;
@@ -261,7 +282,7 @@ export async function resolveAddress({ street, city, state, zip }) {
     city: returnedCity,
     state: returnedState,
     county,
-    districts: { congressional, state_senate, state_house, locality, school_district },
+    districts: { congressional, state_senate, state_house, locality, school_district, commissioner_precinct, jp_precinct },
   };
 
   // Cache the resolved result.
