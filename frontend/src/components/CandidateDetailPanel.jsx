@@ -152,11 +152,10 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-                activeTab === tab.id
-                  ? "bg-white/15 text-white shadow-sm"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-              }`}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${activeTab === tab.id
+                ? "bg-white/15 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
+                }`}
             >
               {tab.label}
             </button>
@@ -208,6 +207,33 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
                 </ul>
               </div>
             )}
+
+            {/* Campaign website CTA — state & federal only */}
+            {campaignUrl &&
+              ["federal", "state"].includes(
+                (candidate.office_level || "").toLowerCase()
+              ) && (
+                <a
+                  href={campaignUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pm-campaign-cta"
+                  style={{ "--party-cta": partyColor }}
+                >
+                  <span className="pm-campaign-cta-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="currentColor" />
+                    </svg>
+                  </span>
+                  <span className="pm-campaign-cta-text">
+                    <span className="pm-campaign-cta-label">Campaign Website</span>
+                    <span className="pm-campaign-cta-url">{(() => { try { return new URL(campaignUrl).hostname.replace('www.', ''); } catch { return campaignUrl; } })()}</span>
+                  </span>
+                  <svg className="pm-campaign-cta-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 3h7v7M13 3L6 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+              )}
           </>
         )}
 
@@ -244,19 +270,7 @@ export default function CandidateDetailPanel({ candidate, onClose }) {
 
         {/* Links */}
         <div className="pm-detail-footer">
-          {campaignUrl && (
-            <a
-              href={campaignUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="pm-detail-link pm-detail-link-campaign"
-            >
-              <span>Campaign website</span>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M5 2h7v7M12 2L5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
-          )}
+
           {candidate.source_url && (
             <a
               href={candidate.source_url}
