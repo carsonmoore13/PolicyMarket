@@ -200,6 +200,8 @@ function filterBySublevel(candidates, sublevel) {
         return office.includes("justice of the peace");
       case "local_clerk":
         return office.includes("clerk") || office.includes("treasurer");
+      case "local_constable":
+        return office.includes("constable");
       case "local_courts":
         return (office.includes("court") || office.includes("district attorney") || office.includes("judicial")) && !office.includes("county judge");
       case "local_school_board":
@@ -225,6 +227,7 @@ function getLocalSublevels(candidates, schoolDistrictName, localityName) {
     { key: "local_county_judge", label: "County Judge", test: (o) => o.includes("county judge") && !o.includes("court") },
     { key: "local_commissioner", label: "Commissioners", test: (o) => o.includes("commissioner") && !o.includes("railroad") && !o.includes("agriculture") && !o.includes("land") },
     { key: "local_jp", label: "Justice of Peace", test: (o) => o.includes("justice of the peace") },
+    { key: "local_constable", label: "Constable", test: (o) => o.includes("constable") },
     { key: "local_clerk", label: "Clerks & Treasurer", test: (o) => o.includes("clerk") || o.includes("treasurer") },
     { key: "local_courts", label: "Courts & DA", test: (o) => (o.includes("court") || o.includes("district attorney") || o.includes("judicial")) && !o.includes("county judge") },
     {
@@ -340,7 +343,7 @@ export default function AppLayout({
       "us_senate", "us_house",
       "governor", "lt_governor", "attorney_general", "ag_commissioner", "land_commissioner",
       "state_senate", "state_house",
-      "local_county_judge", "local_commissioner", "local_jp", "local_clerk",
+      "local_county_judge", "local_commissioner", "local_jp", "local_constable", "local_clerk",
       "local_courts", "local_school_board", "local_township", "local_mayor", "local_city_council",
     ];
     for (const sl of sublevels) {
@@ -378,6 +381,7 @@ export default function AppLayout({
     local_county_judge: "County Judge",
     local_commissioner: "County Commissioners",
     local_jp: "Justice of the Peace",
+    local_constable: "Constable",
     local_clerk: "Clerks & Treasurer",
     local_courts: "Courts & District Attorney",
     local_school_board: schoolDistrictName
@@ -542,6 +546,20 @@ export default function AppLayout({
                 House{userDistricts.state_house ? ` · ${userDistricts.state_house}` : ""}
                 {sublevelCounts.state_house > 0 && <span className="sublevel-count">{sublevelCounts.state_house}</span>}
               </button>
+            </div>
+          )}
+          {level === "local" && (
+            <div className="ballot-summary">
+              <div className="ballot-summary-label">Your ballot</div>
+              <div className="ballot-summary-detail">
+                {addressData?.location?.county || address?.city || "Your area"}
+                {localityTitle ? ` · ${localityTitle}` : ""}
+              </div>
+              {candidates.length > 0 && (
+                <div className="ballot-summary-stat">
+                  {candidates.length} candidate{candidates.length !== 1 ? "s" : ""} across {localSublevels.length} race{localSublevels.length !== 1 ? "s" : ""}
+                </div>
+              )}
             </div>
           )}
           {level === "local" && localSublevels.length > 0 && (

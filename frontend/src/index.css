@@ -1069,6 +1069,38 @@ body {
   height: 8px;
 }
 
+/* ── Ballot summary banner (local tab) ──────────────────────────── */
+.ballot-summary {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.06));
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+  animation: pm-chips-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ballot-summary-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(147, 197, 253, 0.7);
+  margin-bottom: 3px;
+}
+
+.ballot-summary-detail {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.ballot-summary-stat {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
 /* ── Sublevel chip entrance animation ────────────────────────────── */
 .sublevel-filters {
   display: flex;

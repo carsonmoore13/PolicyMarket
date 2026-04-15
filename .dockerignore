@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.env.*
+!frontend/.env.production
+.claude
+*.log
+.DS_Store
+Thumbs.db
+backend/out*.txt
+frontend/public/candidate_photos
+scripts/

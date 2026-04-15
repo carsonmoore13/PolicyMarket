@@ -22,13 +22,14 @@ app.use(compression());
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow localhost, localtunnel, and ngrok origins
       if (
         !origin ||
         /^http:\/\/localhost:\d+$/i.test(origin) ||
         /\.loca\.lt$/.test(origin) ||
         /\.ngrok(-free)?\.app$/.test(origin) ||
-        /\.ngrok\.io$/.test(origin)
+        /\.ngrok\.io$/.test(origin) ||
+        /\.onrender\.com$/.test(origin) ||
+        /\.vercel\.app$/.test(origin)
       ) {
         return callback(null, true);
       }
@@ -61,7 +62,8 @@ async function start() {
     await connectDB();
     const hostMatch = MONGO_URI.match(/@([^/]+?)(?:\/|\?|$)/);
     const host = hostMatch ? hostMatch[1] : "unknown";
-    app.listen(PORT, () => {
+    const HOST = process.env.HOST || "0.0.0.0";
+    app.listen(PORT, HOST, () => {
       console.log(
         `PolicyMarket backend listening on port ${PORT} (Mongo host: ${host})`,
       );
